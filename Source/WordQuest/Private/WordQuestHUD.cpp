@@ -187,18 +187,6 @@ void AWordQuestHUD::DrawHUD()
         DrawBlockText(Text, CenterX - (XL * Scale * 0.5f), Y, Scale, MainColor);
     };
 
-    auto DrawSelectionFrame = [this](float X, float Y, float W, float H)
-    {
-        const float T = 4.f;
-        const FLinearColor Glow(1.f, 0.76f, 0.10f, 0.16f);
-        const FLinearColor Gold(1.f, 0.82f, 0.16f, 1.f);
-        DrawRect(Glow, X, Y, W, H);
-        DrawRect(Gold, X, Y, W, T);
-        DrawRect(Gold, X, Y + H - T, W, T);
-        DrawRect(Gold, X, Y, T, H);
-        DrawRect(Gold, X + W - T, Y, T, H);
-    };
-
     if (GM->bMainMenuOpen)
     {
         if (MenuBackgroundTexture)
@@ -209,20 +197,11 @@ void AWordQuestHUD::DrawHUD()
         {
             DrawRect(FLinearColor(0.02f, 0.03f, 0.05f, 0.98f), 0.f, 0.f, ScreenW, ScreenH);
             DrawCenteredBlockText(TEXT("WORD QUEST"), ScreenW * 0.5f, ScreenH * 0.28f, 1.75f, FColor(255, 226, 72));
-            DrawCenteredBlockText(TEXT("START QUEST"), ScreenW * 0.5f, ScreenH * 0.58f, 1.05f, FColor(255, 226, 72));
-            DrawCenteredBlockText(TEXT("EXIT"), ScreenW * 0.5f, ScreenH * 0.72f, 1.00f, FColor::White);
+            DrawCenteredBlockText(TEXT("START QUEST"), ScreenW * 0.5f, ScreenH * 0.62f, 1.15f, FColor(255, 226, 72));
         }
 
-        // Match the two baked menu buttons in the current WordQuestIntro image.
-        // Selection 0 = START QUEST, selection 1 = EXIT.
-        if (GM->MainMenuSelection == 0)
-        {
-            DrawSelectionFrame(ScreenW * 0.360f, ScreenH * 0.558f, ScreenW * 0.282f, ScreenH * 0.104f);
-        }
-        else
-        {
-            DrawSelectionFrame(ScreenW * 0.378f, ScreenH * 0.705f, ScreenW * 0.232f, ScreenH * 0.088f);
-        }
+        // The title screen now has one action only: press Enter to start.
+        // No up/down selection box is drawn.
         return;
     }
 
@@ -309,14 +288,15 @@ void AWordQuestHUD::DrawHUD()
         return;
     }
 
+    // Keep the battle panel low enough that the player character remains visible.
     const float PanelX = ScreenW * 0.055f;
-    const float PanelY = ScreenH * 0.54f;
+    const float PanelY = ScreenH * 0.61f;
     const float PanelW = ScreenW * 0.89f;
-    const float PanelH = ScreenH * 0.43f;
-    DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.90f), PanelX, PanelY, PanelW, PanelH);
+    const float PanelH = ScreenH * 0.38f;
+    DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.86f), PanelX, PanelY, PanelW, PanelH);
 
     const bool bBossBattle = GM->CurrentEnemy && GM->CurrentEnemy->bBoss;
-    DrawBlockText(bBossBattle ? TEXT("BOSS BATTLE") : TEXT("WORD BATTLE"), PanelX + 22.f, PanelY + 8.f, 0.95f, FColor::Yellow);
+    DrawBlockText(bBossBattle ? TEXT("BOSS BATTLE") : TEXT("WORD BATTLE"), PanelX + 22.f, PanelY + 7.f, 0.98f, FColor::Yellow);
 
     if (GM->CurrentEnemy)
     {
@@ -325,16 +305,17 @@ void AWordQuestHUD::DrawHUD()
         const float BarW = 205.f;
         const float BarH = 17.f;
         const float BarX = PanelX + PanelW - BarW - 28.f;
-        const float BarY = PanelY + 16.f;
+        const float BarY = PanelY + 14.f;
         const float FillPercent = EnemyMaxHP > 0 ? static_cast<float>(EnemyHP) / static_cast<float>(EnemyMaxHP) : 0.f;
 
         DrawRect(FLinearColor(0.10f, 0.10f, 0.10f, 1.f), BarX - 2.f, BarY - 2.f, BarW + 4.f, BarH + 4.f);
         DrawRect(FLinearColor(0.30f, 0.04f, 0.04f, 1.f), BarX, BarY, BarW, BarH);
         DrawRect(FLinearColor(0.92f, 0.16f, 0.16f, 1.f), BarX, BarY, BarW * FMath::Clamp(FillPercent, 0.f, 1.f), BarH);
-        DrawBlockText(FString::Printf(TEXT("ENEMY HP %d/%d"), EnemyHP, EnemyMaxHP), BarX, BarY + 22.f, 0.70f, FColor::White);
+        DrawBlockText(FString::Printf(TEXT("ENEMY HP %d/%d"), EnemyHP, EnemyMaxHP), BarX, BarY + 22.f, 0.72f, FColor::White);
     }
 
-    const float PromptScale = 1.17f;
+    // Significantly larger question and answer text for classroom readability.
+    const float QuestionScale = 2.00f;
     const float MaxPromptWidth = PanelW - 60.f;
     FString Line1 = GM->CurrentQuestion.Prompt;
     FString Line2;
@@ -343,7 +324,7 @@ void AWordQuestHUD::DrawHUD()
     float FullTextHeight = 0.f;
     Canvas->StrLen(Font, Line1, FullTextWidth, FullTextHeight);
 
-    if (FullTextWidth * PromptScale > MaxPromptWidth)
+    if (FullTextWidth * QuestionScale > MaxPromptWidth)
     {
         int32 BestBreak = INDEX_NONE;
         for (int32 CharIndex = 0; CharIndex < Line1.Len(); ++CharIndex)
@@ -355,7 +336,7 @@ void AWordQuestHUD::DrawHUD()
             float CandidateHeight = 0.f;
             Canvas->StrLen(Font, Candidate, CandidateWidth, CandidateHeight);
 
-            if (CandidateWidth * PromptScale <= MaxPromptWidth)
+            if (CandidateWidth * QuestionScale <= MaxPromptWidth)
             {
                 BestBreak = CharIndex;
             }
@@ -372,16 +353,18 @@ void AWordQuestHUD::DrawHUD()
         }
     }
 
-    DrawBlockText(Line1, PanelX + 22.f, PanelY + 56.f, PromptScale, FColor::White);
+    DrawBlockText(Line1, PanelX + 22.f, PanelY + 50.f, QuestionScale, FColor::White);
     if (!Line2.IsEmpty())
     {
-        DrawBlockText(Line2, PanelX + 22.f, PanelY + 94.f, PromptScale, FColor::White);
+        DrawBlockText(Line2, PanelX + 22.f, PanelY + 92.f, QuestionScale, FColor::White);
     }
 
-    const float AnswerScale = 1.03f;
-    const float AnswerStartY = PanelY + (Line2.IsEmpty() ? 120.f : 150.f);
-    const float AnswerGap = 36.f;
-    const float FeedbackProgress = GM->bAnswerFeedbackActive && GetWorld() ? FMath::Clamp(GetWorld()->GetTimeSeconds() - GM->AnswerFeedbackStartTime, 0.f, 1.f) : 0.f;
+    const float AnswerScale = 1.90f;
+    const float AnswerStartY = PanelY + (Line2.IsEmpty() ? 112.f : 142.f);
+    const float AnswerGap = 42.f;
+    const float FeedbackProgress = GM->bAnswerFeedbackActive && GetWorld()
+        ? FMath::Clamp(GetWorld()->GetTimeSeconds() - GM->AnswerFeedbackStartTime, 0.f, 1.f)
+        : 0.f;
 
     for (int32 i = 0; i < GM->CurrentQuestion.Answers.Num() && i < 4; ++i)
     {
@@ -395,13 +378,13 @@ void AWordQuestHUD::DrawHUD()
             {
                 AnswerColor = FColor::Green;
                 Y -= FeedbackProgress * 18.f;
-                DrawRect(FLinearColor(0.05f, 0.35f, 0.08f, 0.72f), X - 10.f, Y - 2.f, PanelW * 0.72f, 33.f);
+                DrawRect(FLinearColor(0.05f, 0.35f, 0.08f, 0.72f), X - 10.f, Y - 3.f, PanelW * 0.72f, 42.f);
             }
             else
             {
                 AnswerColor = FColor::Red;
                 X += FMath::Sin(FeedbackProgress * PI * 10.f) * 13.f;
-                DrawRect(FLinearColor(0.45f, 0.04f, 0.04f, 0.72f), X - 10.f, Y - 2.f, PanelW * 0.72f, 33.f);
+                DrawRect(FLinearColor(0.45f, 0.04f, 0.04f, 0.72f), X - 10.f, Y - 3.f, PanelW * 0.72f, 42.f);
             }
         }
 
@@ -411,8 +394,8 @@ void AWordQuestHUD::DrawHUD()
     DrawBlockText(
         GM->bAnswerFeedbackActive ? TEXT("CHECKING...") : TEXT("PRESS 1, 2, 3 OR 4 TO ANSWER"),
         PanelX + 22.f,
-        PanelY + PanelH - 34.f,
-        0.78f,
+        PanelY + PanelH - 27.f,
+        0.72f,
         GM->bAnswerFeedbackActive ? FColor::Silver : FColor::Green);
 
     DrawFloatingMessages();
