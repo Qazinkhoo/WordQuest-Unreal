@@ -131,9 +131,41 @@ void AWordQuestHUD::DrawHUD()
 
     const float ScreenW = Canvas->SizeX;
     const float ScreenH = Canvas->SizeY;
+
+    if (GM->bMainMenuOpen)
+    {
+        DrawRect(FLinearColor(0.02f, 0.03f, 0.05f, 0.90f), 0.f, 0.f, ScreenW, ScreenH);
+        Canvas->SetDrawColor(FColor::Yellow);
+        Canvas->DrawText(Font, TEXT("WORD QUEST"), ScreenW * 0.31f, ScreenH * 0.24f, 3.8f, 3.8f);
+
+        Canvas->SetDrawColor(FColor::White);
+        Canvas->DrawText(Font, TEXT("Created by Qazin Khoo"), ScreenW * 0.37f, ScreenH * 0.43f, 1.55f, 1.55f);
+
+        DrawRect(FLinearColor(0.12f, 0.18f, 0.08f, 0.95f), ScreenW * 0.31f, ScreenH * 0.58f, ScreenW * 0.38f, 92.f);
+        Canvas->SetDrawColor(FColor::Green);
+        Canvas->DrawText(Font, TEXT("START ADVENTURE"), ScreenW * 0.355f, ScreenH * 0.605f, 2.15f, 2.15f);
+        Canvas->SetDrawColor(FColor::White);
+        Canvas->DrawText(Font, TEXT("Press ENTER"), ScreenW * 0.435f, ScreenH * 0.72f, 1.15f, 1.15f);
+        return;
+    }
+
     FString StageName = TEXT("WHISPERING FOREST");
     if (GM->CurrentStage == 2) StageName = TEXT("SUNNY MEADOW");
     else if (GM->CurrentStage == 3) StageName = TEXT("CRYSTAL CAVE");
+
+    if (GM->bGameOver)
+    {
+        DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.82f), 0.f, 0.f, ScreenW, ScreenH);
+        Canvas->SetDrawColor(FColor::Red);
+        Canvas->DrawText(Font, TEXT("GAME OVER"), ScreenW * 0.32f, ScreenH * 0.24f, 3.9f, 3.9f);
+
+        Canvas->SetDrawColor(FColor::White);
+        Canvas->DrawText(Font, FString::Printf(TEXT("Stage %d - %s"), GM->CurrentStage, *StageName), ScreenW * 0.38f, ScreenH * 0.43f, 1.55f, 1.55f);
+        Canvas->DrawText(Font, TEXT("1. Restart Current Stage"), ScreenW * 0.34f, ScreenH * 0.56f, 1.75f, 1.75f);
+        Canvas->DrawText(Font, TEXT("2. Main Menu"), ScreenW * 0.40f, ScreenH * 0.65f, 1.75f, 1.75f);
+        Canvas->DrawText(Font, TEXT("Press 1 or 2"), ScreenW * 0.425f, ScreenH * 0.76f, 1.15f, 1.15f);
+        return;
+    }
 
     if (GM->bShopOpen && !bShopWasOpen) PlayFeedbackTone(520.f, 1100.f, 0.60f, 0.48f);
     bShopWasOpen = GM->bShopOpen;
@@ -202,30 +234,32 @@ void AWordQuestHUD::DrawHUD()
         return;
     }
 
-    const float PanelX = ScreenW * 0.08f;
-    const float PanelY = ScreenH * 0.66f;
-    const float PanelW = ScreenW * 0.84f;
-    const float PanelH = 230.f;
-    DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.86f), PanelX, PanelY, PanelW, PanelH);
+    // Large, crisp battle text. The panel stays in the lower portion of the screen
+    // so the player and enemy remain visible above it.
+    const float PanelX = ScreenW * 0.055f;
+    const float PanelY = ScreenH * 0.58f;
+    const float PanelW = ScreenW * 0.89f;
+    const float PanelH = 335.f;
+    DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.88f), PanelX, PanelY, PanelW, PanelH);
 
     const bool bBossBattle = GM->CurrentEnemy && GM->CurrentEnemy->bBoss;
     const FString BattleTitle = bBossBattle ? TEXT("BOSS BATTLE") : TEXT("WORD BATTLE");
 
     Canvas->SetDrawColor(FColor::Yellow);
-    Canvas->DrawText(Font, BattleTitle, PanelX + 28.f, PanelY + 8.f, 1.10f, 1.10f);
+    Canvas->DrawText(Font, BattleTitle, PanelX + 26.f, PanelY + 6.f, 1.40f, 1.40f);
 
     Canvas->SetDrawColor(FColor::White);
-    Canvas->DrawText(Font, GM->CurrentQuestion.Prompt, PanelX + 28.f, PanelY + 43.f, 1.18f, 1.18f);
+    Canvas->DrawText(Font, GM->CurrentQuestion.Prompt, PanelX + 26.f, PanelY + 44.f, 2.36f, 2.36f);
 
-    const float AnswerStartY = PanelY + 82.f;
-    const float AnswerGap = 28.f;
+    const float AnswerStartY = PanelY + 105.f;
+    const float AnswerGap = 47.f;
     for (int32 i = 0; i < GM->CurrentQuestion.Answers.Num() && i < 4; ++i)
     {
         const float Y = AnswerStartY + i * AnswerGap;
-        Canvas->DrawText(Font, FString::Printf(TEXT("%d. %s"), i + 1, *GM->CurrentQuestion.Answers[i]), PanelX + 52.f, Y, 1.08f, 1.08f);
+        Canvas->DrawText(Font, FString::Printf(TEXT("%d. %s"), i + 1, *GM->CurrentQuestion.Answers[i]), PanelX + 52.f, Y, 2.16f, 2.16f);
     }
 
     Canvas->SetDrawColor(FColor::Green);
-    Canvas->DrawText(Font, TEXT("Press 1, 2, 3 or 4 to answer"), PanelX + 28.f, PanelY + 199.f, 0.96f, 0.96f);
+    Canvas->DrawText(Font, TEXT("Press 1, 2, 3 or 4 to answer"), PanelX + 26.f, PanelY + 295.f, 1.30f, 1.30f);
     DrawFloatingMessages();
 }
