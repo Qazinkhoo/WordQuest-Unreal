@@ -1,6 +1,7 @@
 #include "WordQuestStageThreeBuilder.h"
 #include "WordQuestEnemy.h"
 #include "WordQuestCharacter.h"
+#include "WordQuestStageBackground.h"
 #include "Engine/StaticMeshActor.h"
 #include "Components/StaticMeshComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -42,6 +43,16 @@ void AWordQuestStageThreeBuilder::BeginPlay()
 {
     Super::BeginPlay();
     const FVector Origin = GetActorLocation();
+
+    if (UWorld* World = GetWorld())
+    {
+        AWordQuestStageBackground* Background = World->SpawnActor<AWordQuestStageBackground>(Origin, FRotator::ZeroRotator);
+        if (Background)
+        {
+            Background->ConfigureBackground(3, Origin);
+            Background->SetActorLabel(TEXT("Stage3_Background"));
+        }
+    }
 
     for (int32 i = 0; i < 19; ++i)
     {
