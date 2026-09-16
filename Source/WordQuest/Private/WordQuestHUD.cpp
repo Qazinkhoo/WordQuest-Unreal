@@ -4,11 +4,25 @@
 #include "WordQuestEnemy.h"
 #include "Engine/Canvas.h"
 #include "Engine/Engine.h"
+#include "Engine/Font.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundWaveProcedural.h"
 #include "TimerManager.h"
+#include "UObject/ConstructorHelpers.h"
+
+AWordQuestHUD::AWordQuestHUD()
+{
+    static ConstructorHelpers::FObjectFinder<UFont> FontObject(TEXT("/Engine/EngineFonts/RobotoDistanceField.RobotoDistanceField"));
+    HDFont = FontObject.Succeeded() ? FontObject.Object : nullptr;
+}
+
+UFont* AWordQuestHUD::GetHUDTextFont() const
+{
+    if (HDFont) return HDFont;
+    return GEngine ? GEngine->GetMediumFont() : nullptr;
+}
 
 void AWordQuestHUD::PlayFeedbackTone(float StartFrequency, float EndFrequency, float DurationSeconds, float Volume)
 {
@@ -70,7 +84,8 @@ void AWordQuestHUD::AddFloatingMessage(const FString& InText, const FColor& InCo
 
 void AWordQuestHUD::DrawFloatingMessages()
 {
-    if (!Canvas || !GEngine || !GetWorld()) return;
+    UFont* Font = GetHUDTextFont();
+    if (!Canvas || !Font || !GetWorld()) return;
 
     const float Now = GetWorld()->GetTimeSeconds();
     for (int32 i = FloatingMessages.Num() - 1; i >= 0; --i)
@@ -95,19 +110,20 @@ void AWordQuestHUD::DrawFloatingMessages()
         FColor ShadowColor(0, 0, 0, Alpha);
         FColor TextColor = Message.Color;
         TextColor.A = Alpha;
-        const float TextScale = 2.25f;
+        const float TextScale = 1.35f;
 
         Canvas->SetDrawColor(ShadowColor);
-        Canvas->DrawText(GEngine->GetLargeFont(), Message.Text, ScreenPosition.X + 3.f, ScreenPosition.Y + 3.f, TextScale, TextScale);
+        Canvas->DrawText(Font, Message.Text, ScreenPosition.X + 2.f, ScreenPosition.Y + 2.f, TextScale, TextScale);
         Canvas->SetDrawColor(TextColor);
-        Canvas->DrawText(GEngine->GetLargeFont(), Message.Text, ScreenPosition.X, ScreenPosition.Y, TextScale, TextScale);
+        Canvas->DrawText(Font, Message.Text, ScreenPosition.X, ScreenPosition.Y, TextScale, TextScale);
     }
 }
 
 void AWordQuestHUD::DrawHUD()
 {
     Super::DrawHUD();
-    if (!Canvas || !GEngine) return;
+    UFont* Font = GetHUDTextFont();
+    if (!Canvas || !Font) return;
 
     AWordQuestGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<AWordQuestGameMode>() : nullptr;
     UWordQuestGameInstance* GI = GetGameInstance<UWordQuestGameInstance>();
@@ -124,9 +140,9 @@ void AWordQuestHUD::DrawHUD()
 
     DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.62f), 20.f, 20.f, 720.f, 118.f);
     Canvas->SetDrawColor(FColor::White);
-    Canvas->DrawText(GEngine->GetSmallFont(), FString::Printf(TEXT("STAGE %d - %s    WAVE %d/5"), GM->CurrentStage, *StageName, GM->CurrentWave), 35.f, 28.f, 1.95f, 1.95f);
-    Canvas->DrawText(GEngine->GetSmallFont(), FString::Printf(TEXT("HP: %d/%d    COINS: %d    DAMAGE: %d"), GI->PlayerState.CurrentHP, GI->PlayerState.MaxHP, GI->PlayerState.Coins, GI->PlayerState.Damage), 35.f, 67.f, 1.90f, 1.90f);
-    Canvas->DrawText(GEngine->GetSmallFont(), GI->PlayerState.bHasSword ? TEXT("SWORD: COLLECTED") : TEXT("SWORD: FIND IT AHEAD"), 35.f, 101.f, 1.70f, 1.70f);
+    Canvas->DrawText(Font, FString::Printf(TEXT("STAGE %d - %s    WAVE %d/5"), GM->CurrentStage, *StageName, GM->CurrentWave), 35.f, 28.f, 1.10f, 1.10f);
+    Canvas->DrawText(Font, FString::Printf(TEXT("HP: %d/%d    COINS: %d    DAMAGE: %d"), GI->PlayerState.CurrentHP, GI->PlayerState.MaxHP, GI->PlayerState.Coins, GI->PlayerState.Damage), 35.f, 67.f, 1.08f, 1.08f);
+    Canvas->DrawText(Font, GI->PlayerState.bHasSword ? TEXT("SWORD: COLLECTED") : TEXT("SWORD: FIND IT AHEAD"), 35.f, 101.f, 1.00f, 1.00f);
 
     if (GM->bShopOpen)
     {
@@ -137,11 +153,11 @@ void AWordQuestHUD::DrawHUD()
         DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.90f), PanelX, PanelY, PanelW, PanelH);
 
         Canvas->SetDrawColor(FColor::Yellow);
-        Canvas->DrawText(GEngine->GetLargeFont(), FString::Printf(TEXT("STAGE %d CLEAR - SHOP"), GM->CurrentStage), PanelX + 36.f, PanelY + 18.f, 1.70f, 1.70f);
+        Canvas->DrawText(Font, FString::Printf(TEXT("STAGE %d CLEAR - SHOP"), GM->CurrentStage), PanelX + 36.f, PanelY + 18.f, 1.20f, 1.20f);
 
         Canvas->SetDrawColor(FColor::White);
-        Canvas->DrawText(GEngine->GetSmallFont(), FString::Printf(TEXT("Coins: %d"), GI->PlayerState.Coins), PanelX + 36.f, PanelY + 76.f, 1.90f, 1.90f);
-        Canvas->DrawText(GEngine->GetSmallFont(), TEXT("Each item can be bought once per shop visit."), PanelX + 225.f, PanelY + 80.f, 1.50f, 1.50f);
+        Canvas->DrawText(Font, FString::Printf(TEXT("Coins: %d"), GI->PlayerState.Coins), PanelX + 36.f, PanelY + 76.f, 1.10f, 1.10f);
+        Canvas->DrawText(Font, TEXT("Each item can be bought once per shop visit."), PanelX + 225.f, PanelY + 80.f, 0.90f, 0.90f);
 
         auto ShopStatus = [](bool bBought, bool bCanBuy, const TCHAR* ReadyText, const TCHAR* UnavailableText)
         {
@@ -154,14 +170,14 @@ void AWordQuestHUD::DrawHUD()
         const FString ArmourStatus = ShopStatus(GI->IsArmourBoughtThisVisit(), GI->CanBuyArmour(), TEXT("READY"), TEXT("NEED 25 COINS"));
 
         Canvas->SetDrawColor(GI->CanBuyApple() ? FColor::Green : FColor::Silver);
-        Canvas->DrawText(GEngine->GetSmallFont(), FString::Printf(TEXT("1. APPLE   3 COINS   +1 HP   [%s]"), *AppleStatus), PanelX + 48.f, PanelY + 150.f, 1.85f, 1.85f);
+        Canvas->DrawText(Font, FString::Printf(TEXT("1. APPLE   3 COINS   +1 HP   [%s]"), *AppleStatus), PanelX + 48.f, PanelY + 150.f, 1.05f, 1.05f);
         Canvas->SetDrawColor(GI->CanBuyStar() ? FColor::Cyan : FColor::Silver);
-        Canvas->DrawText(GEngine->GetSmallFont(), FString::Printf(TEXT("2. STAR   10 COINS   BLOCKS NEXT 2 HITS   [%s]"), *StarStatus), PanelX + 48.f, PanelY + 208.f, 1.85f, 1.85f);
+        Canvas->DrawText(Font, FString::Printf(TEXT("2. STAR   10 COINS   BLOCKS NEXT 2 HITS   [%s]"), *StarStatus), PanelX + 48.f, PanelY + 208.f, 1.05f, 1.05f);
         Canvas->SetDrawColor(GI->CanBuyArmour() ? FColor::Yellow : FColor::Silver);
-        Canvas->DrawText(GEngine->GetSmallFont(), FString::Printf(TEXT("3. ARMOUR   25 COINS   +10 MAX HP & +10 HP   [%s]"), *ArmourStatus), PanelX + 48.f, PanelY + 266.f, 1.85f, 1.85f);
+        Canvas->DrawText(Font, FString::Printf(TEXT("3. ARMOUR   25 COINS   +10 MAX HP & +10 HP   [%s]"), *ArmourStatus), PanelX + 48.f, PanelY + 266.f, 1.05f, 1.05f);
 
         Canvas->SetDrawColor(FColor::White);
-        Canvas->DrawText(GEngine->GetSmallFont(), TEXT("1 / 2 / 3: Buy      4 or ENTER: Continue"), PanelX + 36.f, PanelY + 370.f, 1.70f, 1.70f);
+        Canvas->DrawText(Font, TEXT("1 / 2 / 3: Buy      4 or ENTER: Continue"), PanelX + 36.f, PanelY + 370.f, 1.00f, 1.00f);
         DrawFloatingMessages();
         return;
     }
@@ -170,9 +186,9 @@ void AWordQuestHUD::DrawHUD()
     {
         DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.78f), ScreenW * 0.18f, ScreenH * 0.30f, ScreenW * 0.64f, 188.f);
         Canvas->SetDrawColor(FColor::Yellow);
-        Canvas->DrawText(GEngine->GetLargeFont(), FString::Printf(TEXT("STAGE %d COMPLETE"), GM->CurrentStage), ScreenW * 0.33f, ScreenH * 0.34f, 1.95f, 1.95f);
+        Canvas->DrawText(Font, FString::Printf(TEXT("STAGE %d COMPLETE"), GM->CurrentStage), ScreenW * 0.33f, ScreenH * 0.34f, 1.25f, 1.25f);
         Canvas->SetDrawColor(FColor::White);
-        Canvas->DrawText(GEngine->GetSmallFont(), TEXT("More stages are being added."), ScreenW * 0.34f, ScreenH * 0.45f, 1.75f, 1.75f);
+        Canvas->DrawText(Font, TEXT("Continue through the shop to the next stage."), ScreenW * 0.28f, ScreenH * 0.45f, 1.00f, 1.00f);
         DrawFloatingMessages();
         return;
     }
@@ -181,35 +197,35 @@ void AWordQuestHUD::DrawHUD()
     {
         DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.50f), ScreenW * 0.24f, ScreenH - 82.f, ScreenW * 0.52f, 52.f);
         Canvas->SetDrawColor(FColor::White);
-        Canvas->DrawText(GEngine->GetSmallFont(), TEXT("A / D or Arrow Keys: Move     Space: Jump"), ScreenW * 0.285f, ScreenH - 69.f, 1.65f, 1.65f);
+        Canvas->DrawText(Font, TEXT("A / D or Arrow Keys: Move     Space: Jump"), ScreenW * 0.285f, ScreenH - 69.f, 0.95f, 0.95f);
         DrawFloatingMessages();
         return;
     }
 
     const float PanelX = ScreenW * 0.08f;
-    const float PanelY = ScreenH * 0.64f;
+    const float PanelY = ScreenH * 0.66f;
     const float PanelW = ScreenW * 0.84f;
-    const float PanelH = 252.f;
+    const float PanelH = 230.f;
     DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.86f), PanelX, PanelY, PanelW, PanelH);
 
     const bool bBossBattle = GM->CurrentEnemy && GM->CurrentEnemy->bBoss;
     const FString BattleTitle = bBossBattle ? TEXT("BOSS BATTLE") : TEXT("WORD BATTLE");
 
     Canvas->SetDrawColor(FColor::Yellow);
-    Canvas->DrawText(GEngine->GetLargeFont(), BattleTitle, PanelX + 28.f, PanelY + 8.f, 1.70f, 1.70f);
+    Canvas->DrawText(Font, BattleTitle, PanelX + 28.f, PanelY + 8.f, 1.10f, 1.10f);
 
     Canvas->SetDrawColor(FColor::White);
-    Canvas->DrawText(GEngine->GetSmallFont(), GM->CurrentQuestion.Prompt, PanelX + 28.f, PanelY + 48.f, 2.15f, 2.15f);
+    Canvas->DrawText(Font, GM->CurrentQuestion.Prompt, PanelX + 28.f, PanelY + 43.f, 1.18f, 1.18f);
 
-    const float AnswerStartY = PanelY + 95.f;
-    const float AnswerGap = 31.f;
+    const float AnswerStartY = PanelY + 82.f;
+    const float AnswerGap = 28.f;
     for (int32 i = 0; i < GM->CurrentQuestion.Answers.Num() && i < 4; ++i)
     {
         const float Y = AnswerStartY + i * AnswerGap;
-        Canvas->DrawText(GEngine->GetSmallFont(), FString::Printf(TEXT("%d. %s"), i + 1, *GM->CurrentQuestion.Answers[i]), PanelX + 52.f, Y, 1.90f, 1.90f);
+        Canvas->DrawText(Font, FString::Printf(TEXT("%d. %s"), i + 1, *GM->CurrentQuestion.Answers[i]), PanelX + 52.f, Y, 1.08f, 1.08f);
     }
 
     Canvas->SetDrawColor(FColor::Green);
-    Canvas->DrawText(GEngine->GetSmallFont(), TEXT("Press 1, 2, 3 or 4 to answer"), PanelX + 28.f, PanelY + 218.f, 1.60f, 1.60f);
+    Canvas->DrawText(Font, TEXT("Press 1, 2, 3 or 4 to answer"), PanelX + 28.f, PanelY + 199.f, 0.96f, 0.96f);
     DrawFloatingMessages();
 }
