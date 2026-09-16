@@ -1,4 +1,6 @@
 #include "WordQuestGameInstance.h"
+#include "WordQuestCharacter.h"
+#include "Kismet/GameplayStatics.h"
 
 void UWordQuestGameInstance::StartNewAdventure()
 {
@@ -35,6 +37,11 @@ bool UWordQuestGameInstance::BuyApple()
     PlayerState.Coins -= 3;
     PlayerState.CurrentHP = FMath::Min(PlayerState.MaxHP, PlayerState.CurrentHP + 1);
     bAppleBoughtThisVisit = true;
+
+    if (AWordQuestCharacter* Player = Cast<AWordQuestCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0)))
+    {
+        Player->ShowFloatingText(TEXT("+1 HP"), FColor::Green, 160.f);
+    }
     return true;
 }
 
@@ -44,6 +51,11 @@ bool UWordQuestGameInstance::BuyStar()
     PlayerState.Coins -= 10;
     PlayerState.StarProtectionHits += 2;
     bStarBoughtThisVisit = true;
+
+    if (AWordQuestCharacter* Player = Cast<AWordQuestCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0)))
+    {
+        Player->ShowFloatingText(TEXT("Star: 2 Blocks"), FColor::Cyan, 160.f);
+    }
     return true;
 }
 
@@ -54,6 +66,11 @@ bool UWordQuestGameInstance::BuyArmour()
     PlayerState.MaxHP += 10;
     PlayerState.CurrentHP += 10;
     bArmourBoughtThisVisit = true;
+
+    if (AWordQuestCharacter* Player = Cast<AWordQuestCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0)))
+    {
+        Player->ShowFloatingText(TEXT("+10 Max HP"), FColor::Yellow, 160.f);
+    }
     return true;
 }
 
