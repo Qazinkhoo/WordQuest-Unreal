@@ -18,7 +18,5 @@ private:
     void PressOption3();
     void PressOption4();
     void PressEnter();
-    void PressMenuUp();
-    void PressMenuDown();
     void SubmitAnswerIndex(int32 AnswerIndex);
 };
