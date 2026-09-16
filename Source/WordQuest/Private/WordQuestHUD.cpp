@@ -6,6 +6,53 @@
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundWaveProcedural.h"
+#include "TimerManager.h"
+
+void AWordQuestHUD::PlayFeedbackTone(float StartFrequency, float EndFrequency, float DurationSeconds, float Volume)
+{
+    if (!GetWorld()) return;
+
+    constexpr int32 SampleRate = 44100;
+    const int32 NumSamples = FMath::Max(1, FMath::RoundToInt(DurationSeconds * SampleRate));
+    TArray<int16> PCM;
+    PCM.SetNumUninitialized(NumSamples);
+
+    double Phase = 0.0;
+    for (int32 i = 0; i < NumSamples; ++i)
+    {
+        const float T = NumSamples > 1 ? static_cast<float>(i) / static_cast<float>(NumSamples - 1) : 0.f;
+        const float Frequency = FMath::Lerp(StartFrequency, EndFrequency, T);
+        const float Envelope = FMath::Sin(PI * T);
+        Phase += 2.0 * PI * static_cast<double>(Frequency) / static_cast<double>(SampleRate);
+        const float Sample = FMath::Sin(static_cast<float>(Phase)) * Envelope;
+        PCM[i] = static_cast<int16>(FMath::Clamp(Sample, -1.f, 1.f) * 32760.f);
+    }
+
+    USoundWaveProcedural* Sound = NewObject<USoundWaveProcedural>(this);
+    if (!Sound) return;
+
+    Sound->SetSampleRate(SampleRate);
+    Sound->NumChannels = 1;
+    Sound->Duration = DurationSeconds;
+    Sound->bLooping = false;
+    Sound->QueueAudio(reinterpret_cast<const uint8*>(PCM.GetData()), PCM.Num() * sizeof(int16));
+
+    ActiveFeedbackSounds.Add(Sound);
+    UGameplayStatics::PlaySound2D(this, Sound, Volume);
+
+    FTimerHandle CleanupHandle;
+    TWeakObjectPtr<AWordQuestHUD> WeakSelf(this);
+    TWeakObjectPtr<USoundWaveProcedural> WeakSound(Sound);
+    GetWorld()->GetTimerManager().SetTimer(CleanupHandle, [WeakSelf, WeakSound]()
+    {
+        if (WeakSelf.IsValid() && WeakSound.IsValid())
+        {
+            WeakSelf->ActiveFeedbackSounds.Remove(WeakSound.Get());
+        }
+    }, DurationSeconds + 0.5f, false);
+}
 
 void AWordQuestHUD::AddFloatingMessage(const FString& InText, const FColor& InColor, const FVector& InWorldLocation, float InDuration)
 {
@@ -16,6 +63,15 @@ void AWordQuestHUD::AddFloatingMessage(const FString& InText, const FColor& InCo
     Message.StartTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.f;
     Message.Duration = FMath::Max(0.5f, InDuration);
     FloatingMessages.Add(Message);
+
+    if (InText == TEXT("Correct!"))
+    {
+        PlayFeedbackTone(650.f, 980.f, 0.17f, 0.42f);
+    }
+    else if (InText == TEXT("Wrong!"))
+    {
+        PlayFeedbackTone(270.f, 145.f, 0.23f, 0.44f);
+    }
 }
 
 void AWordQuestHUD::DrawFloatingMessages()
@@ -66,6 +122,12 @@ void AWordQuestHUD::DrawHUD()
     const float ScreenW = Canvas->SizeX;
     const float ScreenH = Canvas->SizeY;
     const FString StageName = GM->CurrentStage == 2 ? TEXT("SUNNY MEADOW") : TEXT("WHISPERING FOREST");
+
+    if (GM->bShopOpen && !bShopWasOpen)
+    {
+        PlayFeedbackTone(520.f, 1100.f, 0.60f, 0.48f);
+    }
+    bShopWasOpen = GM->bShopOpen;
 
     DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.62f), 20.f, 20.f, 720.f, 118.f);
     Canvas->SetDrawColor(FColor::White);
@@ -131,7 +193,6 @@ void AWordQuestHUD::DrawHUD()
         return;
     }
 
-    // Smaller panel, larger text, tighter line spacing: keep player/enemy area visible.
     const float PanelX = ScreenW * 0.08f;
     const float PanelY = ScreenH * 0.64f;
     const float PanelW = ScreenW * 0.84f;
