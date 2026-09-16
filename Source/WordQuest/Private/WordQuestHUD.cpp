@@ -189,6 +189,8 @@ void AWordQuestHUD::DrawHUD()
 
     if (GM->bMainMenuOpen)
     {
+        // Draw only the baked intro artwork. No selection/highlight box or
+        // additional menu overlay is drawn on top of the texture.
         if (MenuBackgroundTexture)
         {
             DrawTexture(MenuBackgroundTexture, 0.f, 0.f, ScreenW, ScreenH, 0.f, 0.f, 1.f, 1.f, FLinearColor::White, BLEND_Opaque);
@@ -199,9 +201,6 @@ void AWordQuestHUD::DrawHUD()
             DrawCenteredBlockText(TEXT("WORD QUEST"), ScreenW * 0.5f, ScreenH * 0.28f, 1.75f, FColor(255, 226, 72));
             DrawCenteredBlockText(TEXT("START QUEST"), ScreenW * 0.5f, ScreenH * 0.62f, 1.15f, FColor(255, 226, 72));
         }
-
-        // The title screen now has one action only: press Enter to start.
-        // No up/down selection box is drawn.
         return;
     }
 
@@ -314,8 +313,8 @@ void AWordQuestHUD::DrawHUD()
         DrawBlockText(FString::Printf(TEXT("ENEMY HP %d/%d"), EnemyHP, EnemyMaxHP), BarX, BarY + 22.f, 0.72f, FColor::White);
     }
 
-    // Significantly larger question and answer text for classroom readability.
-    const float QuestionScale = 2.00f;
+    // Moderately large question and answer text for classroom readability.
+    const float QuestionScale = 1.60f;
     const float MaxPromptWidth = PanelW - 60.f;
     FString Line1 = GM->CurrentQuestion.Prompt;
     FString Line2;
@@ -356,12 +355,12 @@ void AWordQuestHUD::DrawHUD()
     DrawBlockText(Line1, PanelX + 22.f, PanelY + 50.f, QuestionScale, FColor::White);
     if (!Line2.IsEmpty())
     {
-        DrawBlockText(Line2, PanelX + 22.f, PanelY + 92.f, QuestionScale, FColor::White);
+        DrawBlockText(Line2, PanelX + 22.f, PanelY + 88.f, QuestionScale, FColor::White);
     }
 
-    const float AnswerScale = 1.90f;
-    const float AnswerStartY = PanelY + (Line2.IsEmpty() ? 112.f : 142.f);
-    const float AnswerGap = 42.f;
+    const float AnswerScale = 1.45f;
+    const float AnswerStartY = PanelY + (Line2.IsEmpty() ? 108.f : 136.f);
+    const float AnswerGap = 38.f;
     const float FeedbackProgress = GM->bAnswerFeedbackActive && GetWorld()
         ? FMath::Clamp(GetWorld()->GetTimeSeconds() - GM->AnswerFeedbackStartTime, 0.f, 1.f)
         : 0.f;
@@ -378,13 +377,13 @@ void AWordQuestHUD::DrawHUD()
             {
                 AnswerColor = FColor::Green;
                 Y -= FeedbackProgress * 18.f;
-                DrawRect(FLinearColor(0.05f, 0.35f, 0.08f, 0.72f), X - 10.f, Y - 3.f, PanelW * 0.72f, 42.f);
+                DrawRect(FLinearColor(0.05f, 0.35f, 0.08f, 0.72f), X - 10.f, Y - 3.f, PanelW * 0.72f, 36.f);
             }
             else
             {
                 AnswerColor = FColor::Red;
                 X += FMath::Sin(FeedbackProgress * PI * 10.f) * 13.f;
-                DrawRect(FLinearColor(0.45f, 0.04f, 0.04f, 0.72f), X - 10.f, Y - 3.f, PanelW * 0.72f, 42.f);
+                DrawRect(FLinearColor(0.45f, 0.04f, 0.04f, 0.72f), X - 10.f, Y - 3.f, PanelW * 0.72f, 36.f);
             }
         }
 
