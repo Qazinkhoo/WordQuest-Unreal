@@ -21,7 +21,6 @@ AWordQuestStageBackground::AWordQuestStageBackground()
     BackgroundWidgetComponent->SetTwoSided(true);
     BackgroundWidgetComponent->SetBlendMode(EWidgetBlendMode::Opaque);
     BackgroundWidgetComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-    BackgroundWidgetComponent->SetTranslucencySortPriority(-100);
 }
 
 void AWordQuestStageBackground::BeginPlay()
