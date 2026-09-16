@@ -8,6 +8,7 @@
 #include "WordQuestHUD.h"
 #include "WordQuestPlayerController.h"
 #include "Kismet/GameplayStatics.h"
+#include "Sound/SoundWaveProcedural.h"
 
 AWordQuestGameMode::AWordQuestGameMode()
 {
@@ -19,31 +20,59 @@ AWordQuestGameMode::AWordQuestGameMode()
 void AWordQuestGameMode::BeginPlay()
 {
     Super::BeginPlay();
-    CurrentStage = 1;
+
     CurrentWave = 1;
     bBattleActive = false;
     bStageClear = false;
     bShopOpen = false;
 
-    if (UWordQuestGameInstance* GI = GetGameInstance<UWordQuestGameInstance>())
+    UWordQuestGameInstance* GI = GetGameInstance<UWordQuestGameInstance>();
+    if (!GI) return;
+
+    const FString LevelName = UGameplayStatics::GetCurrentLevelName(this, true);
+    const bool bIsStageTwoMap = LevelName.Contains(TEXT("Stage02_SunnyMeadow"));
+
+    if (bIsStageTwoMap)
     {
-        if (GI->PlayerState.Stage <= 1 && GI->PlayerState.CurrentHP <= 0) GI->StartNewAdventure();
+        CurrentStage = 2;
+        GI->PlayerState.Stage = 2;
+        GI->PlayerState.Wave = 1;
+        CurrentWave = 1;
+    }
+    else
+    {
+        CurrentStage = 1;
+        if (GI->PlayerState.CurrentHP <= 0)
+        {
+            GI->StartNewAdventure();
+        }
         GI->PlayerState.Stage = 1;
         GI->PlayerState.Wave = 1;
+        CurrentWave = 1;
     }
 
     if (APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0))
     {
+        AdventureStartLocation = Pawn->GetActorLocation();
         const FVector BuilderLocation = Pawn->GetActorLocation() - FVector(150.f, 0.f, Pawn->GetActorLocation().Z);
-        GetWorld()->SpawnActor<AWordQuestStageOneBuilder>(BuilderLocation, FRotator::ZeroRotator);
+
+        if (CurrentStage == 2)
+        {
+            GetWorld()->SpawnActor<AWordQuestStageTwoBuilder>(BuilderLocation, FRotator::ZeroRotator);
+        }
+        else
+        {
+            GetWorld()->SpawnActor<AWordQuestStageOneBuilder>(BuilderLocation, FRotator::ZeroRotator);
+        }
     }
 }
 
 void AWordQuestGameMode::StartEncounter(AWordQuestEnemy* Enemy)
 {
     if (!Enemy || bBattleActive || bStageClear || bShopOpen) return;
+    if (Enemy->WaveNumber != CurrentWave) return;
+
     CurrentEnemy = Enemy;
-    CurrentWave = Enemy->WaveNumber;
     bBattleActive = true;
 
     if (AWordQuestCharacter* Player = Cast<AWordQuestCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0)))
@@ -68,6 +97,48 @@ bool AWordQuestGameMode::LoadDifferentQuestion()
     return false;
 }
 
+void AWordQuestGameMode::PlayTone(float StartFrequency, float EndFrequency, float DurationSeconds, float Volume)
+{
+    if (!GetWorld() || DurationSeconds <= 0.f) return;
+
+    constexpr int32 SampleRate = 44100;
+    const int32 NumSamples = FMath::Max(1, FMath::RoundToInt(DurationSeconds * SampleRate));
+
+    USoundWaveProcedural* Sound = NewObject<USoundWaveProcedural>(this);
+    if (!Sound) return;
+
+    Sound->NumChannels = 1;
+    Sound->Duration = DurationSeconds;
+    Sound->bLooping = false;
+    Sound->SetSampleRate(SampleRate);
+
+    TArray<int16> PCM;
+    PCM.SetNumUninitialized(NumSamples);
+
+    double Phase = 0.0;
+    for (int32 i = 0; i < NumSamples; ++i)
+    {
+        const float T = static_cast<float>(i) / static_cast<float>(FMath::Max(1, NumSamples - 1));
+        const float Frequency = FMath::Lerp(StartFrequency, EndFrequency, T);
+        Phase += 2.0 * PI * static_cast<double>(Frequency) / static_cast<double>(SampleRate);
+
+        const float Attack = FMath::Clamp(T / 0.08f, 0.f, 1.f);
+        const float Release = FMath::Clamp((1.f - T) / 0.15f, 0.f, 1.f);
+        const float Envelope = FMath::Min(Attack, Release);
+        const float Sample = FMath::Sin(static_cast<float>(Phase)) * Envelope * FMath::Clamp(Volume, 0.f, 1.f);
+        PCM[i] = static_cast<int16>(FMath::Clamp(Sample, -1.f, 1.f) * 32767.f);
+    }
+
+    Sound->QueueAudio(reinterpret_cast<const uint8*>(PCM.GetData()), PCM.Num() * sizeof(int16));
+    ActiveFeedbackSounds.Add(Sound);
+    if (ActiveFeedbackSounds.Num() > 12)
+    {
+        ActiveFeedbackSounds.RemoveAt(0);
+    }
+
+    UGameplayStatics::PlaySound2D(this, Sound, 1.f, 1.f, 0.f);
+}
+
 bool AWordQuestGameMode::SubmitAnswer(int32 AnswerIndex)
 {
     if (!bBattleActive || !CurrentEnemy) return false;
@@ -79,6 +150,7 @@ bool AWordQuestGameMode::SubmitAnswer(int32 AnswerIndex)
 
     if (bCorrect)
     {
+        PlayTone(620.f, 880.f, 0.16f, 0.35f);
         if (Player) Player->ShowFloatingText(TEXT("Correct!"), FColor::White, 195.f);
 
         CurrentEnemy->PlayHitPulse();
@@ -111,6 +183,7 @@ bool AWordQuestGameMode::SubmitAnswer(int32 AnswerIndex)
     }
     else
     {
+        PlayTone(360.f, 180.f, 0.22f, 0.38f);
         const bool bTookDamage = GI->ApplyEnemyHit();
 
         if (Player)
@@ -146,6 +219,7 @@ void AWordQuestGameMode::AdvanceWave()
     if (CurrentWave >= 5)
     {
         bStageClear = true;
+        PlayTone(440.f, 1040.f, 0.75f, 0.45f);
         OpenStageShop();
         OnStageCleared();
         return;
@@ -190,7 +264,6 @@ void AWordQuestGameMode::BuyShopArmour()
 void AWordQuestGameMode::LeaveStageShop()
 {
     if (!bShopOpen) return;
-    bShopOpen = false;
 
     if (CurrentStage == 1)
     {
@@ -198,6 +271,7 @@ void AWordQuestGameMode::LeaveStageShop()
         return;
     }
 
+    bShopOpen = false;
     if (AWordQuestCharacter* Player = Cast<AWordQuestCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0)))
     {
         Player->SetBattleLocked(true);
@@ -206,38 +280,15 @@ void AWordQuestGameMode::LeaveStageShop()
 
 void AWordQuestGameMode::StartStageTwo()
 {
-    AWordQuestCharacter* Player = Cast<AWordQuestCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
-    if (!Player || !GetWorld()) return;
+    UWordQuestGameInstance* GI = GetGameInstance<UWordQuestGameInstance>();
+    if (!GI) return;
 
-    // Clear any leftover Stage 1 enemies before building the next stage.
-    TArray<AActor*> ExistingEnemies;
-    UGameplayStatics::GetAllActorsOfClass(this, AWordQuestEnemy::StaticClass(), ExistingEnemies);
-    for (AActor* Actor : ExistingEnemies)
-    {
-        if (Actor) Actor->Destroy();
-    }
+    GI->PlayerState.Stage = 2;
+    GI->PlayerState.Wave = 1;
+    bShopOpen = false;
+    bBattleActive = false;
+    bStageClear = false;
     CurrentEnemy = nullptr;
 
-    // Reset stage state before spawning Stage 2 actors so no old Wave 5 state can carry over.
-    CurrentStage = 2;
-    CurrentWave = 1;
-    bStageClear = false;
-    bBattleActive = false;
-    bShopOpen = false;
-
-    if (UWordQuestGameInstance* GI = GetGameInstance<UWordQuestGameInstance>())
-    {
-        GI->PlayerState.Stage = 2;
-        GI->PlayerState.Wave = 1;
-    }
-
-    // Build Stage 2 from a clean origin ahead of the player, then place the player
-    // at the true beginning of that new stage. Wave 1 is 1,150 units ahead.
-    const FVector BuilderLocation(Player->GetActorLocation().X + 1500.f, Player->GetActorLocation().Y, 0.f);
-    GetWorld()->SpawnActor<AWordQuestStageTwoBuilder>(BuilderLocation, FRotator::ZeroRotator);
-
-    const FVector StageTwoPlayerStart = BuilderLocation + FVector(150.f, 0.f, 120.f);
-    Player->SetActorLocation(StageTwoPlayerStart, false, nullptr, ETeleportType::TeleportPhysics);
-    Player->SetBattleLocked(false);
-    Player->ShowFloatingText(TEXT("Stage 2 - Sunny Meadow"), FColor::Yellow, 220.f);
+    UGameplayStatics::OpenLevel(this, FName(TEXT("Stage02_SunnyMeadow")));
 }
