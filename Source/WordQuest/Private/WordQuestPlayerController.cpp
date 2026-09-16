@@ -21,6 +21,7 @@ void AWordQuestPlayerController::PressOption1()
     if (!GetWorld()) return;
     if (AWordQuestGameMode* GM = GetWorld()->GetAuthGameMode<AWordQuestGameMode>())
     {
+        if (GM->bQuestComplete) return;
         if (GM->bGameOver) GM->RestartCurrentStage();
         else if (GM->bShopOpen) GM->BuyShopApple();
         else SubmitAnswerIndex(0);
@@ -32,6 +33,7 @@ void AWordQuestPlayerController::PressOption2()
     if (!GetWorld()) return;
     if (AWordQuestGameMode* GM = GetWorld()->GetAuthGameMode<AWordQuestGameMode>())
     {
+        if (GM->bQuestComplete) return;
         if (GM->bGameOver) GM->ReturnToMainMenu();
         else if (GM->bShopOpen) GM->BuyShopStar();
         else SubmitAnswerIndex(1);
@@ -43,7 +45,7 @@ void AWordQuestPlayerController::PressOption3()
     if (!GetWorld()) return;
     if (AWordQuestGameMode* GM = GetWorld()->GetAuthGameMode<AWordQuestGameMode>())
     {
-        if (GM->bMainMenuOpen || GM->bGameOver) return;
+        if (GM->bMainMenuOpen || GM->bGameOver || GM->bQuestComplete) return;
         if (GM->bShopOpen) GM->BuyShopArmour();
         else SubmitAnswerIndex(2);
     }
@@ -54,7 +56,7 @@ void AWordQuestPlayerController::PressOption4()
     if (!GetWorld()) return;
     if (AWordQuestGameMode* GM = GetWorld()->GetAuthGameMode<AWordQuestGameMode>())
     {
-        if (GM->bMainMenuOpen || GM->bGameOver) return;
+        if (GM->bMainMenuOpen || GM->bGameOver || GM->bQuestComplete) return;
         if (GM->bShopOpen) GM->LeaveStageShop();
         else SubmitAnswerIndex(3);
     }
@@ -66,6 +68,7 @@ void AWordQuestPlayerController::PressEnter()
     if (AWordQuestGameMode* GM = GetWorld()->GetAuthGameMode<AWordQuestGameMode>())
     {
         if (GM->bMainMenuOpen) GM->StartAdventureFromMenu();
+        else if (GM->bQuestComplete) GM->ReturnToMainMenu();
         else if (GM->bShopOpen) GM->LeaveStageShop();
     }
 }
@@ -76,7 +79,7 @@ void AWordQuestPlayerController::SubmitAnswerIndex(int32 AnswerIndex)
 
     if (AWordQuestGameMode* GM = GetWorld()->GetAuthGameMode<AWordQuestGameMode>())
     {
-        if (!GM->bMainMenuOpen && !GM->bGameOver)
+        if (!GM->bMainMenuOpen && !GM->bGameOver && !GM->bQuestComplete)
         {
             GM->SubmitAnswer(AnswerIndex);
         }
