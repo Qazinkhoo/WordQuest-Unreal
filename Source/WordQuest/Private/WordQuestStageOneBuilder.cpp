@@ -1,6 +1,7 @@
 #include "WordQuestStageOneBuilder.h"
 #include "WordQuestEnemy.h"
 #include "WordQuestSwordPickup.h"
+#include "WordQuestStageBackground.h"
 #include "Engine/StaticMeshActor.h"
 #include "Components/StaticMeshComponent.h"
 #include "UObject/ConstructorHelpers.h"
@@ -40,6 +41,16 @@ void AWordQuestStageOneBuilder::BeginPlay()
     Super::BeginPlay();
 
     const FVector Origin = GetActorLocation();
+
+    if (UWorld* World = GetWorld())
+    {
+        AWordQuestStageBackground* Background = World->SpawnActor<AWordQuestStageBackground>(Origin, FRotator::ZeroRotator);
+        if (Background)
+        {
+            Background->ConfigureBackground(1, Origin);
+            Background->SetActorLabel(TEXT("Stage1_Background"));
+        }
+    }
 
     // Build a continuous collision floor for the whole stage instead of relying
     // on the small Basic-level editor floor. Each cube is 400 units long, and
