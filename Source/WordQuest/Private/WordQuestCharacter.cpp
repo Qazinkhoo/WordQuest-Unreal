@@ -2,6 +2,7 @@
 #include "WordQuestGameInstance.h"
 #include "WordQuestHUD.h"
 #include "WordQuestHeroWidget.h"
+#include "WordQuestShadowWidget.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -62,12 +63,31 @@ AWordQuestCharacter::AWordQuestCharacter()
     HeroWidgetComponent->SetupAttachment(GetCapsuleComponent());
     HeroWidgetComponent->SetWidgetClass(UWordQuestHeroWidget::StaticClass());
     HeroWidgetComponent->SetWidgetSpace(EWidgetSpace::World);
-    HeroWidgetComponent->SetDrawSize(FVector2D(140.f, 220.f));
+
+    // The cropped side-view sprite is about 1:3 width-to-height.
+    // Matching that ratio here prevents the character from looking stretched.
+    HeroWidgetComponent->SetDrawSize(FVector2D(100.f, 300.f));
     HeroWidgetComponent->SetPivot(FVector2D(0.5f, 0.5f));
-    HeroWidgetComponent->SetRelativeLocation(FVector(0.f, -2.f, 10.f));
+
+    // A 300-unit-tall widget centred at Z=51 places the feet around the
+    // bottom of the standard Character capsule (-96), so the hero is grounded.
+    HeroWidgetComponent->SetRelativeLocation(FVector(0.f, -2.f, 51.f));
     HeroWidgetComponent->SetRelativeRotation(FRotator(0.f, 90.f, 0.f));
     HeroWidgetComponent->SetTwoSided(true);
+    HeroWidgetComponent->SetBlendMode(EWidgetBlendMode::Transparent);
     HeroWidgetComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+    ShadowWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("ShadowWidgetComponent"));
+    ShadowWidgetComponent->SetupAttachment(GetCapsuleComponent());
+    ShadowWidgetComponent->SetWidgetClass(UWordQuestShadowWidget::StaticClass());
+    ShadowWidgetComponent->SetWidgetSpace(EWidgetSpace::World);
+    ShadowWidgetComponent->SetDrawSize(FVector2D(78.f, 8.f));
+    ShadowWidgetComponent->SetPivot(FVector2D(0.5f, 0.5f));
+    ShadowWidgetComponent->SetRelativeLocation(FVector(0.f, 1.f, -94.f));
+    ShadowWidgetComponent->SetRelativeRotation(FRotator(0.f, 90.f, 0.f));
+    ShadowWidgetComponent->SetTwoSided(true);
+    ShadowWidgetComponent->SetBlendMode(EWidgetBlendMode::Transparent);
+    ShadowWidgetComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 void AWordQuestCharacter::BeginPlay()
@@ -76,19 +96,30 @@ void AWordQuestCharacter::BeginPlay()
 
     if (HeroWidgetComponent)
     {
-        HeroWidget = Cast<UWordQuestHeroWidget>(HeroWidgetComponent->GetWidget());
+        HeroWidget = Cast<UWordQuestHeroWidget>(HeroWidgetComponent->GetUserWidgetObject());
         if (HeroWidget)
         {
             HeroWidget->SetFacingLeft(false);
         }
     }
+
+    UpdateGroundShadow();
 }
 
 void AWordQuestCharacter::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
+    UpdateHeroVisual(DeltaSeconds);
+    UpdateGroundShadow();
+}
+
+void AWordQuestCharacter::UpdateHeroVisual(float DeltaSeconds)
+{
+    if (!HeroWidgetComponent) return;
 
     const float SpeedX = GetVelocity().X;
+    const bool bMoving = FMath::Abs(SpeedX) > 5.f && GetCharacterMovement()->IsMovingOnGround();
+
     if (FMath::Abs(SpeedX) > 1.f)
     {
         const bool bNewFacingLeft = SpeedX < 0.f;
@@ -101,6 +132,45 @@ void AWordQuestCharacter::Tick(float DeltaSeconds)
             }
         }
     }
+
+    MovementAnimTime += DeltaSeconds;
+
+    // Small step/bob animation while walking. The base position sits a few
+    // units into the floor so the feet still feel planted as the sprite bobs.
+    const float StepBob = bMoving ? FMath::Abs(FMath::Sin(MovementAnimTime * 10.f)) * 4.f : 0.f;
+    const float StepSway = bMoving ? FMath::Sin(MovementAnimTime * 5.f) * 1.4f : 0.f;
+    HeroWidgetComponent->SetRelativeLocation(FVector(StepSway, -2.f, 51.f + StepBob));
+}
+
+void AWordQuestCharacter::UpdateGroundShadow()
+{
+    if (!ShadowWidgetComponent || !GetWorld()) return;
+
+    const FVector ActorLocation = GetActorLocation();
+    const FVector TraceStart = ActorLocation + FVector(0.f, 0.f, 20.f);
+    const FVector TraceEnd = ActorLocation - FVector(0.f, 0.f, 650.f);
+
+    FHitResult Hit;
+    FCollisionQueryParams TraceParams(SCENE_QUERY_STAT(WordQuestPlayerShadow), false, this);
+    const bool bHitGround = GetWorld()->LineTraceSingleByChannel(Hit, TraceStart, TraceEnd, ECC_Visibility, TraceParams);
+
+    if (!bHitGround)
+    {
+        ShadowWidgetComponent->SetVisibility(false);
+        return;
+    }
+
+    ShadowWidgetComponent->SetVisibility(true);
+    ShadowWidgetComponent->SetWorldLocation(Hit.ImpactPoint + FVector(0.f, 1.f, 2.5f));
+
+    const float CapsuleHalfHeight = GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+    const float FeetHeight = ActorLocation.Z - CapsuleHalfHeight;
+    const float HeightAboveGround = FMath::Max(0.f, FeetHeight - Hit.ImpactPoint.Z);
+
+    // The shadow becomes smaller when the player jumps, making the jump
+    // easier to read visually while keeping the shadow on the actual ground.
+    const float ShadowScale = FMath::Clamp(1.f - HeightAboveGround / 320.f, 0.45f, 1.f);
+    ShadowWidgetComponent->SetDrawSize(FVector2D(78.f * ShadowScale, FMath::Max(4.f, 8.f * ShadowScale)));
 }
 
 void AWordQuestCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
