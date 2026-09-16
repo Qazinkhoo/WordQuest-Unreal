@@ -17,5 +17,7 @@ protected:
     virtual void NotifyActorBeginOverlap(AActor* OtherActor) override;
 public:
     UPROPERTY(VisibleAnywhere) TObjectPtr<UBoxComponent> Trigger;
-    UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> Visual;
+    UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> Blade;
+    UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> Guard;
+    UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> Handle;
 };
