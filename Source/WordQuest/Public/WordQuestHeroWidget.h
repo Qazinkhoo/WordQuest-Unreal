@@ -16,6 +16,9 @@ public:
     virtual void NativeConstruct() override;
     void SetFacingLeft(bool bInFacingLeft);
 
+protected:
+    virtual TSharedRef<SWidget> RebuildWidget() override;
+
 private:
     void RefreshBrush();
 
