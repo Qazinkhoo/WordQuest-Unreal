@@ -3,6 +3,7 @@
 #include "WordQuestEnemy.h"
 #include "WordQuestGameInstance.h"
 #include "WordQuestQuestionSubsystem.h"
+#include "WordQuestStageOneBuilder.h"
 #include "Kismet/GameplayStatics.h"
 
 AWordQuestGameMode::AWordQuestGameMode()
@@ -22,6 +23,12 @@ void AWordQuestGameMode::BeginPlay()
         GI->PlayerState.Stage = 1;
         GI->PlayerState.Wave = 1;
     }
+
+    if (APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0))
+    {
+        const FVector BuilderLocation = Pawn->GetActorLocation() - FVector(150.f, 0.f, Pawn->GetActorLocation().Z);
+        GetWorld()->SpawnActor<AWordQuestStageOneBuilder>(BuilderLocation, FRotator::ZeroRotator);
+    }
 }
 
 void AWordQuestGameMode::StartEncounter(AWordQuestEnemy* Enemy)
@@ -30,6 +37,12 @@ void AWordQuestGameMode::StartEncounter(AWordQuestEnemy* Enemy)
     CurrentEnemy = Enemy;
     CurrentWave = Enemy->WaveNumber;
     bBattleActive = true;
+
+    if (AWordQuestCharacter* Player = Cast<AWordQuestCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0)))
+    {
+        Player->SetBattleLocked(true);
+    }
+
     LoadDifferentQuestion();
     OnBattleStateChanged();
 }
@@ -64,6 +77,12 @@ bool AWordQuestGameMode::SubmitAnswer(int32 AnswerIndex)
             CurrentEnemy = nullptr;
             bBattleActive = false;
             AdvanceWave();
+
+            if (AWordQuestCharacter* Player = Cast<AWordQuestCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0)))
+            {
+                Player->SetBattleLocked(false);
+            }
+
             OnBattleStateChanged();
             return true;
         }
@@ -74,6 +93,10 @@ bool AWordQuestGameMode::SubmitAnswer(int32 AnswerIndex)
         if (GI->IsGameOver())
         {
             bBattleActive = false;
+            if (AWordQuestCharacter* Player = Cast<AWordQuestCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0)))
+            {
+                Player->SetBattleLocked(true);
+            }
             OnGameOver();
             OnBattleStateChanged();
             return false;
