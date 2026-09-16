@@ -1,12 +1,14 @@
 #include "WordQuestCharacter.h"
 #include "WordQuestGameInstance.h"
 #include "WordQuestHUD.h"
+#include "WordQuestHeroWidget.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/InputComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/WidgetComponent.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
 #include "TimerManager.h"
@@ -14,7 +16,7 @@
 
 AWordQuestCharacter::AWordQuestCharacter()
 {
-    PrimaryActorTick.bCanEverTick = false;
+    PrimaryActorTick.bCanEverTick = true;
     bUseControllerRotationYaw = false;
     GetCharacterMovement()->bOrientRotationToMovement = false;
     GetCharacterMovement()->GravityScale = 2.f;
@@ -37,7 +39,6 @@ AWordQuestCharacter::AWordQuestCharacter()
 
     static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh(TEXT("/Engine/BasicShapes/Cube.Cube"));
 
-    // CubeMesh has static storage duration, so it must not be captured by the lambda.
     auto MakeBlock = [this](const TCHAR* Name, const FVector& Scale, const FVector& Location)
     {
         UStaticMeshComponent* Part = CreateDefaultSubobject<UStaticMeshComponent>(Name);
@@ -56,11 +57,50 @@ AWordQuestCharacter::AWordQuestCharacter()
     RightArm = MakeBlock(TEXT("RightArm"), FVector(0.16f, 0.16f, 0.55f), FVector(0.f, 43.f, 20.f));
     LeftLeg = MakeBlock(TEXT("LeftLeg"), FVector(0.18f, 0.18f, 0.55f), FVector(0.f, -18.f, -68.f));
     RightLeg = MakeBlock(TEXT("RightLeg"), FVector(0.18f, 0.18f, 0.55f), FVector(0.f, 18.f, -68.f));
+
+    HeroWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HeroWidgetComponent"));
+    HeroWidgetComponent->SetupAttachment(GetCapsuleComponent());
+    HeroWidgetComponent->SetWidgetClass(UWordQuestHeroWidget::StaticClass());
+    HeroWidgetComponent->SetWidgetSpace(EWidgetSpace::World);
+    HeroWidgetComponent->SetDrawSize(FVector2D(140.f, 220.f));
+    HeroWidgetComponent->SetPivot(FVector2D(0.5f, 0.5f));
+    HeroWidgetComponent->SetRelativeLocation(FVector(0.f, -2.f, 10.f));
+    HeroWidgetComponent->SetRelativeRotation(FRotator(0.f, 90.f, 0.f));
+    HeroWidgetComponent->SetTwoSided(true);
+    HeroWidgetComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 void AWordQuestCharacter::BeginPlay()
 {
     Super::BeginPlay();
+
+    if (HeroWidgetComponent)
+    {
+        HeroWidget = Cast<UWordQuestHeroWidget>(HeroWidgetComponent->GetWidget());
+        if (HeroWidget)
+        {
+            HeroWidget->SetFacingLeft(false);
+        }
+    }
+}
+
+void AWordQuestCharacter::Tick(float DeltaSeconds)
+{
+    Super::Tick(DeltaSeconds);
+
+    const float SpeedX = GetVelocity().X;
+    if (FMath::Abs(SpeedX) > 1.f)
+    {
+        const bool bNewFacingLeft = SpeedX < 0.f;
+        if (bNewFacingLeft != bFacingLeft)
+        {
+            bFacingLeft = bNewFacingLeft;
+            if (HeroWidget)
+            {
+                HeroWidget->SetFacingLeft(bFacingLeft);
+            }
+        }
+    }
 }
 
 void AWordQuestCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
