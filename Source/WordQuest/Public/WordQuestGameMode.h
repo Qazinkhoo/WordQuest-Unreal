@@ -6,6 +6,7 @@
 #include "WordQuestGameMode.generated.h"
 
 class AWordQuestEnemy;
+class USoundWaveProcedural;
 
 UCLASS()
 class WORDQUEST_API AWordQuestGameMode : public AGameModeBase
@@ -40,4 +41,10 @@ public:
 
 private:
     bool LoadDifferentQuestion();
+    void PlayTone(float StartFrequency, float EndFrequency, float DurationSeconds, float Volume = 0.35f);
+
+    FVector AdventureStartLocation = FVector::ZeroVector;
+
+    UPROPERTY()
+    TArray<TObjectPtr<USoundWaveProcedural>> ActiveFeedbackSounds;
 };
