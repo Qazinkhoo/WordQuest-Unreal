@@ -189,8 +189,8 @@ void AWordQuestHUD::DrawHUD()
 
     if (GM->bMainMenuOpen)
     {
-        // Draw only the baked intro artwork. No selection/highlight box or
-        // additional menu overlay is drawn on top of the texture.
+        // Draw only the baked intro artwork. The START QUEST label in the
+        // artwork is already centred; no extra menu text or selection box is drawn.
         if (MenuBackgroundTexture)
         {
             DrawTexture(MenuBackgroundTexture, 0.f, 0.f, ScreenW, ScreenH, 0.f, 0.f, 1.f, 1.f, FLinearColor::White, BLEND_Opaque);
@@ -313,8 +313,8 @@ void AWordQuestHUD::DrawHUD()
         DrawBlockText(FString::Printf(TEXT("ENEMY HP %d/%d"), EnemyHP, EnemyMaxHP), BarX, BarY + 22.f, 0.72f, FColor::White);
     }
 
-    // Moderately large question and answer text for classroom readability.
-    const float QuestionScale = 1.60f;
+    // Large, readable text without crowding the battle panel.
+    const float QuestionScale = 1.42f;
     const float MaxPromptWidth = PanelW - 60.f;
     FString Line1 = GM->CurrentQuestion.Prompt;
     FString Line2;
@@ -355,12 +355,12 @@ void AWordQuestHUD::DrawHUD()
     DrawBlockText(Line1, PanelX + 22.f, PanelY + 50.f, QuestionScale, FColor::White);
     if (!Line2.IsEmpty())
     {
-        DrawBlockText(Line2, PanelX + 22.f, PanelY + 88.f, QuestionScale, FColor::White);
+        DrawBlockText(Line2, PanelX + 22.f, PanelY + 84.f, QuestionScale, FColor::White);
     }
 
-    const float AnswerScale = 1.45f;
-    const float AnswerStartY = PanelY + (Line2.IsEmpty() ? 108.f : 136.f);
-    const float AnswerGap = 38.f;
+    const float AnswerScale = 1.25f;
+    const float AnswerStartY = PanelY + (Line2.IsEmpty() ? 103.f : 130.f);
+    const float AnswerGap = 34.f;
     const float FeedbackProgress = GM->bAnswerFeedbackActive && GetWorld()
         ? FMath::Clamp(GetWorld()->GetTimeSeconds() - GM->AnswerFeedbackStartTime, 0.f, 1.f)
         : 0.f;
@@ -377,13 +377,13 @@ void AWordQuestHUD::DrawHUD()
             {
                 AnswerColor = FColor::Green;
                 Y -= FeedbackProgress * 18.f;
-                DrawRect(FLinearColor(0.05f, 0.35f, 0.08f, 0.72f), X - 10.f, Y - 3.f, PanelW * 0.72f, 36.f);
+                DrawRect(FLinearColor(0.05f, 0.35f, 0.08f, 0.72f), X - 10.f, Y - 3.f, PanelW * 0.72f, 31.f);
             }
             else
             {
                 AnswerColor = FColor::Red;
                 X += FMath::Sin(FeedbackProgress * PI * 10.f) * 13.f;
-                DrawRect(FLinearColor(0.45f, 0.04f, 0.04f, 0.72f), X - 10.f, Y - 3.f, PanelW * 0.72f, 36.f);
+                DrawRect(FLinearColor(0.45f, 0.04f, 0.04f, 0.72f), X - 10.f, Y - 3.f, PanelW * 0.72f, 31.f);
             }
         }
 
