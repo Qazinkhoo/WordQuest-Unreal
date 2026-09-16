@@ -4,6 +4,7 @@
 #include "WordQuestGameInstance.h"
 #include "WordQuestQuestionSubsystem.h"
 #include "WordQuestStageOneBuilder.h"
+#include "WordQuestStageTwoBuilder.h"
 #include "WordQuestHUD.h"
 #include "WordQuestPlayerController.h"
 #include "Kismet/GameplayStatics.h"
@@ -18,6 +19,7 @@ AWordQuestGameMode::AWordQuestGameMode()
 void AWordQuestGameMode::BeginPlay()
 {
     Super::BeginPlay();
+    CurrentStage = 1;
     CurrentWave = 1;
     bBattleActive = false;
     bStageClear = false;
@@ -77,10 +79,7 @@ bool AWordQuestGameMode::SubmitAnswer(int32 AnswerIndex)
 
     if (bCorrect)
     {
-        if (Player)
-        {
-            Player->ShowFloatingText(TEXT("Correct!"), FColor::White, 195.f);
-        }
+        if (Player) Player->ShowFloatingText(TEXT("Correct!"), FColor::White, 195.f);
 
         CurrentEnemy->PlayHitPulse();
         const bool bWasBoss = CurrentEnemy->bBoss;
@@ -104,10 +103,7 @@ bool AWordQuestGameMode::SubmitAnswer(int32 AnswerIndex)
             bBattleActive = false;
             AdvanceWave();
 
-            if (Player)
-            {
-                Player->SetBattleLocked(bStageClear || bShopOpen);
-            }
+            if (Player) Player->SetBattleLocked(bStageClear || bShopOpen);
 
             OnBattleStateChanged();
             return true;
@@ -165,10 +161,7 @@ void AWordQuestGameMode::AdvanceWave()
 void AWordQuestGameMode::OpenStageShop()
 {
     bShopOpen = true;
-    if (UWordQuestGameInstance* GI = GetGameInstance<UWordQuestGameInstance>())
-    {
-        GI->ResetShopStock();
-    }
+    if (UWordQuestGameInstance* GI = GetGameInstance<UWordQuestGameInstance>()) GI->ResetShopStock();
 
     if (AWordQuestCharacter* Player = Cast<AWordQuestCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0)))
     {
@@ -199,9 +192,40 @@ void AWordQuestGameMode::LeaveStageShop()
     if (!bShopOpen) return;
     bShopOpen = false;
 
+    if (CurrentStage == 1)
+    {
+        StartStageTwo();
+        return;
+    }
+
     if (AWordQuestCharacter* Player = Cast<AWordQuestCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0)))
     {
-        Player->ShowFloatingText(TEXT("Stage 2 coming next"), FColor::White, 180.f);
         Player->SetBattleLocked(true);
     }
+}
+
+void AWordQuestGameMode::StartStageTwo()
+{
+    AWordQuestCharacter* Player = Cast<AWordQuestCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
+    if (!Player || !GetWorld()) return;
+
+    const FVector StageTwoStart = Player->GetActorLocation() + FVector(900.f, 0.f, 0.f);
+    const FVector BuilderLocation = StageTwoStart - FVector(150.f, 0.f, StageTwoStart.Z);
+    GetWorld()->SpawnActor<AWordQuestStageTwoBuilder>(BuilderLocation, FRotator::ZeroRotator);
+
+    CurrentStage = 2;
+    CurrentWave = 1;
+    bStageClear = false;
+    bBattleActive = false;
+    bShopOpen = false;
+
+    if (UWordQuestGameInstance* GI = GetGameInstance<UWordQuestGameInstance>())
+    {
+        GI->PlayerState.Stage = 2;
+        GI->PlayerState.Wave = 1;
+    }
+
+    Player->SetActorLocation(StageTwoStart + FVector(0.f, 0.f, 120.f), false, nullptr, ETeleportType::TeleportPhysics);
+    Player->SetBattleLocked(false);
+    Player->ShowFloatingText(TEXT("Stage 2 - Sunny Meadow"), FColor::Yellow, 220.f);
 }
