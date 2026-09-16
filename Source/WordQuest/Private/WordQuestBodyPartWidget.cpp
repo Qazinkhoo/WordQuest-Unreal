@@ -21,6 +21,12 @@ void UWordQuestBodyPartWidget::NativeConstruct()
     Super::NativeConstruct();
 
     AtlasTexture = LoadObject<UTexture2D>(nullptr, TEXT("/Game/UI/WQHeroPartsAtlas.WQHeroPartsAtlas"));
+    if (AtlasTexture)
+    {
+        AtlasTexture->Filter = TF_Nearest;
+        AtlasTexture->UpdateResource();
+    }
+
     RefreshBrush();
     SetFlipped(bFlipped);
 }
