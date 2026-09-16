@@ -4,6 +4,7 @@
 #include "Blueprint/UserWidget.h"
 #include "WordQuestStageBackgroundWidget.generated.h"
 
+class UCanvasPanel;
 class UImage;
 class UTexture2D;
 
@@ -23,7 +24,10 @@ private:
     void RefreshBackground();
 
     UPROPERTY()
-    TObjectPtr<UImage> BackgroundImage;
+    TObjectPtr<UCanvasPanel> TileCanvas;
+
+    UPROPERTY()
+    TArray<TObjectPtr<UImage>> BackgroundTiles;
 
     UPROPERTY()
     TObjectPtr<UTexture2D> BackgroundTexture;
