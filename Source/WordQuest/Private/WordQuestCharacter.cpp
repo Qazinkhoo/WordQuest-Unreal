@@ -37,7 +37,8 @@ AWordQuestCharacter::AWordQuestCharacter()
 
     static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh(TEXT("/Engine/BasicShapes/Cube.Cube"));
 
-    auto MakeBlock = [this, &CubeMesh](const TCHAR* Name, const FVector& Scale, const FVector& Location)
+    // CubeMesh has static storage duration, so it must not be captured by the lambda.
+    auto MakeBlock = [this](const TCHAR* Name, const FVector& Scale, const FVector& Location)
     {
         UStaticMeshComponent* Part = CreateDefaultSubobject<UStaticMeshComponent>(Name);
         Part->SetupAttachment(GetCapsuleComponent());
