@@ -24,6 +24,7 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly) TObjectPtr<UCameraComponent> SideCamera;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Hero Visual") TObjectPtr<UWidgetComponent> HeroWidgetComponent;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Hero Visual") TObjectPtr<UWidgetComponent> ShadowWidgetComponent;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Voxel Visual") TObjectPtr<UStaticMeshComponent> BlockBody;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Voxel Visual") TObjectPtr<UStaticMeshComponent> BlockHead;
@@ -39,8 +40,12 @@ public:
 
 private:
     void MoveRight(float Value);
+    void UpdateHeroVisual(float DeltaSeconds);
+    void UpdateGroundShadow();
+
     bool bBattleLocked = false;
     bool bFacingLeft = false;
+    float MovementAnimTime = 0.f;
 
     UPROPERTY()
     TObjectPtr<UWordQuestHeroWidget> HeroWidget;
