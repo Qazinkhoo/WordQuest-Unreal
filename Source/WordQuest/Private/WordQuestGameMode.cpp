@@ -209,10 +209,16 @@ void AWordQuestGameMode::StartStageTwo()
     AWordQuestCharacter* Player = Cast<AWordQuestCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
     if (!Player || !GetWorld()) return;
 
-    const FVector StageTwoStart = Player->GetActorLocation() + FVector(900.f, 0.f, 0.f);
-    const FVector BuilderLocation = StageTwoStart - FVector(150.f, 0.f, StageTwoStart.Z);
-    GetWorld()->SpawnActor<AWordQuestStageTwoBuilder>(BuilderLocation, FRotator::ZeroRotator);
+    // Clear any leftover Stage 1 enemies before building the next stage.
+    TArray<AActor*> ExistingEnemies;
+    UGameplayStatics::GetAllActorsOfClass(this, AWordQuestEnemy::StaticClass(), ExistingEnemies);
+    for (AActor* Actor : ExistingEnemies)
+    {
+        if (Actor) Actor->Destroy();
+    }
+    CurrentEnemy = nullptr;
 
+    // Reset stage state before spawning Stage 2 actors so no old Wave 5 state can carry over.
     CurrentStage = 2;
     CurrentWave = 1;
     bStageClear = false;
@@ -225,7 +231,13 @@ void AWordQuestGameMode::StartStageTwo()
         GI->PlayerState.Wave = 1;
     }
 
-    Player->SetActorLocation(StageTwoStart + FVector(0.f, 0.f, 120.f), false, nullptr, ETeleportType::TeleportPhysics);
+    // Build Stage 2 from a clean origin ahead of the player, then place the player
+    // at the true beginning of that new stage. Wave 1 is 1,150 units ahead.
+    const FVector BuilderLocation(Player->GetActorLocation().X + 1500.f, Player->GetActorLocation().Y, 0.f);
+    GetWorld()->SpawnActor<AWordQuestStageTwoBuilder>(BuilderLocation, FRotator::ZeroRotator);
+
+    const FVector StageTwoPlayerStart = BuilderLocation + FVector(150.f, 0.f, 120.f);
+    Player->SetActorLocation(StageTwoPlayerStart, false, nullptr, ETeleportType::TeleportPhysics);
     Player->SetBattleLocked(false);
     Player->ShowFloatingText(TEXT("Stage 2 - Sunny Meadow"), FColor::Yellow, 220.f);
 }
