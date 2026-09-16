@@ -1,7 +1,7 @@
 #include "WordQuestCharacter.h"
 #include "WordQuestGameInstance.h"
 #include "WordQuestHUD.h"
-#include "WordQuestHeroWidget.h"
+#include "WordQuestBodyPartWidget.h"
 #include "WordQuestShadowWidget.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -59,25 +59,36 @@ AWordQuestCharacter::AWordQuestCharacter()
     LeftLeg = MakeBlock(TEXT("LeftLeg"), FVector(0.18f, 0.18f, 0.55f), FVector(0.f, -18.f, -68.f));
     RightLeg = MakeBlock(TEXT("RightLeg"), FVector(0.18f, 0.18f, 0.55f), FVector(0.f, 18.f, -68.f));
 
-    HeroWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HeroWidgetComponent"));
-    HeroWidgetComponent->SetupAttachment(GetCapsuleComponent());
-    HeroWidgetComponent->SetWidgetClass(UWordQuestHeroWidget::StaticClass());
-    HeroWidgetComponent->SetWidgetSpace(EWidgetSpace::World);
-    HeroWidgetComponent->SetDrawSize(FVector2D(100.f, 300.f));
-    HeroWidgetComponent->SetPivot(FVector2D(0.5f, 0.5f));
-    HeroWidgetComponent->SetRelativeLocation(FVector(0.f, -2.f, 51.f));
-    HeroWidgetComponent->SetRelativeRotation(FRotator(0.f, 90.f, 0.f));
-    HeroWidgetComponent->SetTwoSided(true);
-    HeroWidgetComponent->SetBlendMode(EWidgetBlendMode::Transparent);
-    HeroWidgetComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    auto MakeHeroPart = [this](const TCHAR* Name, const FVector2D& DrawSize, const FVector2D& Pivot, const FVector& Location)
+    {
+        UWidgetComponent* Part = CreateDefaultSubobject<UWidgetComponent>(Name);
+        Part->SetupAttachment(GetCapsuleComponent());
+        Part->SetWidgetClass(UWordQuestBodyPartWidget::StaticClass());
+        Part->SetWidgetSpace(EWidgetSpace::World);
+        Part->SetDrawSize(DrawSize);
+        Part->SetPivot(Pivot);
+        Part->SetRelativeLocation(Location);
+        Part->SetRelativeRotation(FRotator(0.f, 90.f, 0.f));
+        Part->SetTwoSided(true);
+        Part->SetBlendMode(EWidgetBlendMode::Transparent);
+        Part->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+        return Part;
+    };
+
+    HeadPartComponent = MakeHeroPart(TEXT("HeadPartComponent"), FVector2D(104.f, 88.f), FVector2D(0.50f, 0.50f), FVector(8.f, 0.f, 156.f));
+    TorsoPartComponent = MakeHeroPart(TEXT("TorsoPartComponent"), FVector2D(92.f, 105.f), FVector2D(0.50f, 0.50f), FVector(0.f, -2.f, 60.f));
+    LeftArmPartComponent = MakeHeroPart(TEXT("LeftArmPartComponent"), FVector2D(53.f, 115.f), FVector2D(0.50f, 0.08f), FVector(-25.f, -3.f, 105.f));
+    RightArmPartComponent = MakeHeroPart(TEXT("RightArmPartComponent"), FVector2D(70.f, 115.f), FVector2D(0.50f, 0.08f), FVector(18.f, -1.f, 105.f));
+    LeftLegPartComponent = MakeHeroPart(TEXT("LeftLegPartComponent"), FVector2D(67.f, 102.f), FVector2D(0.50f, 0.05f), FVector(-10.f, -3.f, 0.f));
+    RightLegPartComponent = MakeHeroPart(TEXT("RightLegPartComponent"), FVector2D(72.f, 104.f), FVector2D(0.50f, 0.05f), FVector(16.f, -1.f, 0.f));
 
     ShadowWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("ShadowWidgetComponent"));
     ShadowWidgetComponent->SetupAttachment(GetCapsuleComponent());
     ShadowWidgetComponent->SetWidgetClass(UWordQuestShadowWidget::StaticClass());
     ShadowWidgetComponent->SetWidgetSpace(EWidgetSpace::World);
-    ShadowWidgetComponent->SetDrawSize(FVector2D(92.f, 13.f));
+    ShadowWidgetComponent->SetDrawSize(FVector2D(92.f, 10.f));
     ShadowWidgetComponent->SetPivot(FVector2D(0.5f, 0.5f));
-    ShadowWidgetComponent->SetRelativeLocation(FVector(0.f, 3.f, -94.f));
+    ShadowWidgetComponent->SetRelativeLocation(FVector(0.f, 1.f, -94.f));
     ShadowWidgetComponent->SetRelativeRotation(FRotator(0.f, 90.f, 0.f));
     ShadowWidgetComponent->SetTwoSided(true);
     ShadowWidgetComponent->SetBlendMode(EWidgetBlendMode::Transparent);
@@ -88,16 +99,21 @@ void AWordQuestCharacter::BeginPlay()
 {
     Super::BeginPlay();
 
-    if (HeroWidgetComponent)
-    {
-        HeroWidget = Cast<UWordQuestHeroWidget>(HeroWidgetComponent->GetUserWidgetObject());
-        if (HeroWidget)
-        {
-            HeroWidget->SetFacingLeft(false);
-            HeroWidget->SetMovementState(false, false);
-        }
-    }
+    HeadPartWidget = Cast<UWordQuestBodyPartWidget>(HeadPartComponent ? HeadPartComponent->GetUserWidgetObject() : nullptr);
+    TorsoPartWidget = Cast<UWordQuestBodyPartWidget>(TorsoPartComponent ? TorsoPartComponent->GetUserWidgetObject() : nullptr);
+    LeftArmPartWidget = Cast<UWordQuestBodyPartWidget>(LeftArmPartComponent ? LeftArmPartComponent->GetUserWidgetObject() : nullptr);
+    RightArmPartWidget = Cast<UWordQuestBodyPartWidget>(RightArmPartComponent ? RightArmPartComponent->GetUserWidgetObject() : nullptr);
+    LeftLegPartWidget = Cast<UWordQuestBodyPartWidget>(LeftLegPartComponent ? LeftLegPartComponent->GetUserWidgetObject() : nullptr);
+    RightLegPartWidget = Cast<UWordQuestBodyPartWidget>(RightLegPartComponent ? RightLegPartComponent->GetUserWidgetObject() : nullptr);
 
+    if (HeadPartWidget) HeadPartWidget->SetBodyPart(EWordQuestBodyPart::Head);
+    if (TorsoPartWidget) TorsoPartWidget->SetBodyPart(EWordQuestBodyPart::Torso);
+    if (LeftArmPartWidget) LeftArmPartWidget->SetBodyPart(EWordQuestBodyPart::LeftArm);
+    if (RightArmPartWidget) RightArmPartWidget->SetBodyPart(EWordQuestBodyPart::RightArm);
+    if (LeftLegPartWidget) LeftLegPartWidget->SetBodyPart(EWordQuestBodyPart::LeftLeg);
+    if (RightLegPartWidget) RightLegPartWidget->SetBodyPart(EWordQuestBodyPart::RightLeg);
+
+    UpdateFacing();
     UpdateGroundShadow();
 }
 
@@ -108,14 +124,23 @@ void AWordQuestCharacter::Tick(float DeltaSeconds)
     UpdateGroundShadow();
 }
 
+void AWordQuestCharacter::UpdateFacing()
+{
+    const bool bFlip = bFacingLeft;
+
+    if (HeadPartWidget) HeadPartWidget->SetFlipped(bFlip);
+    if (TorsoPartWidget) TorsoPartWidget->SetFlipped(bFlip);
+    if (LeftArmPartWidget) LeftArmPartWidget->SetFlipped(bFlip);
+    if (RightArmPartWidget) RightArmPartWidget->SetFlipped(bFlip);
+    if (LeftLegPartWidget) LeftLegPartWidget->SetFlipped(bFlip);
+    if (RightLegPartWidget) RightLegPartWidget->SetFlipped(bFlip);
+}
+
 void AWordQuestCharacter::UpdateHeroVisual(float DeltaSeconds)
 {
-    if (!HeroWidgetComponent) return;
-
     const float SpeedX = GetVelocity().X;
-    const bool bGrounded = GetCharacterMovement()->IsMovingOnGround();
-    const bool bMoving = FMath::Abs(SpeedX) > 5.f && bGrounded;
-    const bool bAirborne = !bGrounded;
+    const bool bMovingOnGround = FMath::Abs(SpeedX) > 5.f && GetCharacterMovement()->IsMovingOnGround();
+    const bool bInAir = GetCharacterMovement()->IsFalling();
 
     if (FMath::Abs(SpeedX) > 1.f)
     {
@@ -123,25 +148,83 @@ void AWordQuestCharacter::UpdateHeroVisual(float DeltaSeconds)
         if (bNewFacingLeft != bFacingLeft)
         {
             bFacingLeft = bNewFacingLeft;
-            if (HeroWidget)
-            {
-                HeroWidget->SetFacingLeft(bFacingLeft);
-            }
+            UpdateFacing();
         }
-    }
-
-    if (HeroWidget)
-    {
-        HeroWidget->SetMovementState(bMoving, bAirborne);
     }
 
     MovementAnimTime += DeltaSeconds;
 
-    // Keep the full character mostly planted while the widget itself animates
-    // the upper body and legs. A tiny bob prevents the motion from looking stiff.
-    const float StepBob = bMoving ? FMath::Abs(FMath::Sin(MovementAnimTime * 10.5f)) * 1.6f : 0.f;
-    const float StepSway = bMoving ? FMath::Sin(MovementAnimTime * 5.25f) * 0.7f : 0.f;
-    HeroWidgetComponent->SetRelativeLocation(FVector(StepSway, -2.f, 51.f + StepBob));
+    const float FacingSign = bFacingLeft ? -1.f : 1.f;
+    const float WalkPhase = MovementAnimTime * 8.5f;
+    const float WalkSin = FMath::Sin(WalkPhase);
+    const float WalkCos = FMath::Cos(WalkPhase);
+
+    float ArmSwing = 0.f;
+    float LegSwing = 0.f;
+    float Bob = 0.f;
+    float HeadBob = 0.f;
+
+    if (bMovingOnGround)
+    {
+        ArmSwing = WalkSin * 24.f;
+        LegSwing = WalkSin * 22.f;
+        Bob = FMath::Abs(WalkSin) * 2.5f;
+        HeadBob = FMath::Abs(WalkCos) * 1.5f;
+    }
+    else if (bInAir)
+    {
+        ArmSwing = -18.f;
+        LegSwing = 14.f;
+        Bob = 3.f;
+        HeadBob = 2.f;
+    }
+    else
+    {
+        Bob = FMath::Sin(MovementAnimTime * 2.0f) * 0.8f;
+        HeadBob = FMath::Sin(MovementAnimTime * 2.0f + 0.6f) * 0.6f;
+    }
+
+    const float BackArmX = -25.f * FacingSign;
+    const float FrontArmX = 18.f * FacingSign;
+    const float BackLegX = -10.f * FacingSign;
+    const float FrontLegX = 16.f * FacingSign;
+    const float HeadX = 8.f * FacingSign;
+
+    if (HeadPartComponent)
+    {
+        HeadPartComponent->SetRelativeLocation(FVector(HeadX, 0.f, 156.f + Bob + HeadBob));
+        HeadPartComponent->SetRelativeRotation(FRotator(0.f, 90.f, 0.f));
+    }
+
+    if (TorsoPartComponent)
+    {
+        TorsoPartComponent->SetRelativeLocation(FVector(0.f, -2.f, 60.f + Bob));
+        TorsoPartComponent->SetRelativeRotation(FRotator(bMovingOnGround ? WalkSin * 1.5f : 0.f, 90.f, 0.f));
+    }
+
+    if (LeftArmPartComponent)
+    {
+        LeftArmPartComponent->SetRelativeLocation(FVector(BackArmX, -3.f, 105.f + Bob));
+        LeftArmPartComponent->SetRelativeRotation(FRotator((-ArmSwing) * FacingSign, 90.f, 0.f));
+    }
+
+    if (RightArmPartComponent)
+    {
+        RightArmPartComponent->SetRelativeLocation(FVector(FrontArmX, -1.f, 105.f + Bob));
+        RightArmPartComponent->SetRelativeRotation(FRotator(ArmSwing * FacingSign, 90.f, 0.f));
+    }
+
+    if (LeftLegPartComponent)
+    {
+        LeftLegPartComponent->SetRelativeLocation(FVector(BackLegX, -3.f, Bob * 0.35f));
+        LeftLegPartComponent->SetRelativeRotation(FRotator(LegSwing * FacingSign, 90.f, 0.f));
+    }
+
+    if (RightLegPartComponent)
+    {
+        RightLegPartComponent->SetRelativeLocation(FVector(FrontLegX, -1.f, Bob * 0.35f));
+        RightLegPartComponent->SetRelativeRotation(FRotator((-LegSwing) * FacingSign, 90.f, 0.f));
+    }
 }
 
 void AWordQuestCharacter::UpdateGroundShadow()
@@ -149,7 +232,7 @@ void AWordQuestCharacter::UpdateGroundShadow()
     if (!ShadowWidgetComponent || !GetWorld()) return;
 
     const FVector ActorLocation = GetActorLocation();
-    const FVector TraceStart = ActorLocation + FVector(0.f, 0.f, 24.f);
+    const FVector TraceStart = ActorLocation + FVector(0.f, 0.f, 20.f);
     const FVector TraceEnd = ActorLocation - FVector(0.f, 0.f, 650.f);
 
     FHitResult Hit;
@@ -163,16 +246,14 @@ void AWordQuestCharacter::UpdateGroundShadow()
     }
 
     ShadowWidgetComponent->SetVisibility(true);
-    ShadowWidgetComponent->SetWorldLocation(Hit.ImpactPoint + FVector(0.f, 3.f, 3.0f));
+    ShadowWidgetComponent->SetWorldLocation(Hit.ImpactPoint + FVector(0.f, 1.f, 2.5f));
 
     const float CapsuleHalfHeight = GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
     const float FeetHeight = ActorLocation.Z - CapsuleHalfHeight;
     const float HeightAboveGround = FMath::Max(0.f, FeetHeight - Hit.ImpactPoint.Z);
+    const float ShadowScale = FMath::Clamp(1.f - HeightAboveGround / 320.f, 0.42f, 1.f);
 
-    const float ShadowScale = FMath::Clamp(1.f - HeightAboveGround / 300.f, 0.42f, 1.f);
-    const float Width = 92.f * ShadowScale;
-    const float Height = FMath::Max(6.f, 13.f * ShadowScale);
-    ShadowWidgetComponent->SetDrawSize(FVector2D(Width, Height));
+    ShadowWidgetComponent->SetDrawSize(FVector2D(92.f * ShadowScale, FMath::Max(4.f, 10.f * ShadowScale)));
 }
 
 void AWordQuestCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
