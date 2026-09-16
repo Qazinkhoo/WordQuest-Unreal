@@ -4,7 +4,6 @@
 #include "Blueprint/UserWidget.h"
 #include "WordQuestHeroWidget.generated.h"
 
-class UCanvasPanel;
 class UImage;
 class UTexture2D;
 
@@ -24,21 +23,17 @@ protected:
     virtual TSharedRef<SWidget> RebuildWidget() override;
 
 private:
-    void RefreshBrushes();
-    void ApplyPartBrush(UImage* Image, const FBox2f& UVRegion, const FVector2D& ImageSize);
-    void ResetPartTransforms();
+    void RefreshBrush();
+    void ResetHeroTransform();
 
-    UPROPERTY() TObjectPtr<UCanvasPanel> RootPanel;
-    UPROPERTY() TObjectPtr<UImage> HeadImage;
-    UPROPERTY() TObjectPtr<UImage> TorsoImage;
-    UPROPERTY() TObjectPtr<UImage> LeftArmImage;
-    UPROPERTY() TObjectPtr<UImage> RightArmImage;
-    UPROPERTY() TObjectPtr<UImage> LeftLegImage;
-    UPROPERTY() TObjectPtr<UImage> RightLegImage;
-    UPROPERTY() TObjectPtr<UTexture2D> AtlasTexture;
+    UPROPERTY()
+    TObjectPtr<UImage> HeroImage;
+
+    UPROPERTY()
+    TObjectPtr<UTexture2D> HeroTexture;
 
     bool bFacingLeft = false;
     bool bMoving = false;
     bool bAirborne = false;
-    float WalkPhase = 0.f;
+    float AnimTime = 0.f;
 };
