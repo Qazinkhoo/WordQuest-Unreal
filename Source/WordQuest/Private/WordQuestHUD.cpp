@@ -10,7 +10,6 @@
 #include "Engine/World.h"
 #include "Fonts/CompositeFont.h"
 #include "GameFramework/PlayerController.h"
-#include "GameFramework/Pawn.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundWaveProcedural.h"
 #include "TimerManager.h"
@@ -21,10 +20,7 @@ AWordQuestHUD::AWordQuestHUD()
     static ConstructorHelpers::FObjectFinder<UFont> FallbackFontObject(TEXT("/Engine/EngineFonts/RobotoDistanceField.RobotoDistanceField"));
     HDFont = FallbackFontObject.Succeeded() ? FallbackFontObject.Object : nullptr;
 
-    // Complete generated introduction artwork.
     MenuBackgroundTexture = LoadObject<UTexture2D>(nullptr, TEXT("/Game/UI/WordQuestIntro.WordQuestIntro"));
-
-    // Gameplay character is rendered in world space by AWordQuestCharacter.
     HeroSpriteTexture = nullptr;
 }
 
@@ -40,16 +36,13 @@ void AWordQuestHUD::BeginPlay()
         {
             RuntimeFont->FontCacheType = EFontCacheType::Runtime;
             RuntimeFont->LegacyFontName = FName(TEXT("Regular"));
-            // Smaller base size for the chunky Bungee-style font so it stays
-            // readable without dominating the HUD and battle panel.
-            RuntimeFont->LegacyFontSize = 18;
+            RuntimeFont->LegacyFontSize = 20;
             RuntimeFont->CompositeFont.DefaultTypeface.Fonts.Reset();
 
             FTypefaceEntry RegularEntry(FName(TEXT("Regular")));
             RegularEntry.Font = FFontData(WordQuestFontFace, 0);
             RuntimeFont->CompositeFont.DefaultTypeface.Fonts.Add(RegularEntry);
             RuntimeFont->CompositeFont.MakeDirty();
-
             HDFont = RuntimeFont;
         }
     }
@@ -63,53 +56,23 @@ UFont* AWordQuestHUD::GetHUDTextFont() const
 
 void AWordQuestHUD::DrawMenuVoxelHero(float CenterX, float TopY, float Scale)
 {
-    const float HeadW = 74.f * Scale;
-    const float HeadH = 70.f * Scale;
-    const float BodyW = 82.f * Scale;
-    const float BodyH = 92.f * Scale;
-    const float LimbW = 26.f * Scale;
-    const float ArmH = 82.f * Scale;
-    const float LegH = 78.f * Scale;
-
-    const float X = CenterX - HeadW * 0.5f;
-    DrawRect(FLinearColor(0.10f, 0.06f, 0.03f, 1.f), X - 5.f * Scale, TopY - 5.f * Scale, HeadW + 10.f * Scale, HeadH + 10.f * Scale);
-    DrawRect(FLinearColor(0.45f, 0.25f, 0.14f, 1.f), X, TopY, HeadW, HeadH);
-    DrawRect(FLinearColor(0.95f, 0.74f, 0.60f, 1.f), X + 10.f * Scale, TopY + 22.f * Scale, HeadW - 20.f * Scale, HeadH - 24.f * Scale);
-    DrawRect(FLinearColor(0.16f, 0.35f, 0.85f, 1.f), X + 14.f * Scale, TopY + 31.f * Scale, 13.f * Scale, 10.f * Scale);
-    DrawRect(FLinearColor(0.16f, 0.35f, 0.85f, 1.f), X + 47.f * Scale, TopY + 31.f * Scale, 13.f * Scale, 10.f * Scale);
-
-    const float BodyX = CenterX - BodyW * 0.5f;
-    const float BodyY = TopY + HeadH + 6.f * Scale;
-    DrawRect(FLinearColor(0.03f, 0.55f, 0.65f, 1.f), BodyX, BodyY, BodyW, BodyH);
-    DrawRect(FLinearColor(0.86f, 0.58f, 0.44f, 1.f), BodyX - LimbW, BodyY + 6.f * Scale, LimbW, ArmH);
-    DrawRect(FLinearColor(0.86f, 0.58f, 0.44f, 1.f), BodyX + BodyW, BodyY + 6.f * Scale, LimbW, ArmH);
-
-    const float LegY = BodyY + BodyH;
-    DrawRect(FLinearColor(0.18f, 0.14f, 0.72f, 1.f), CenterX - LimbW, LegY, LimbW, LegH);
-    DrawRect(FLinearColor(0.18f, 0.14f, 0.72f, 1.f), CenterX, LegY, LimbW, LegH);
-    DrawRect(FLinearColor(0.15f, 0.15f, 0.15f, 1.f), CenterX - LimbW, LegY + LegH - 10.f * Scale, LimbW, 10.f * Scale);
-    DrawRect(FLinearColor(0.15f, 0.15f, 0.15f, 1.f), CenterX, LegY + LegH - 10.f * Scale, LimbW, 10.f * Scale);
+    // Legacy helper retained for compatibility. The current menu hero is baked
+    // into WordQuestIntro and is not drawn separately.
 }
 
 void AWordQuestHUD::DrawMenuHeroSprite(float X, float Y, float W, float H)
 {
-    if (!HeroSpriteTexture)
-    {
-        DrawMenuVoxelHero(X + W * 0.5f, Y, 1.12f);
-        return;
-    }
-
-    DrawTexture(HeroSpriteTexture, X, Y, W, H, 0.f, 0.f, 0.25f, 1.f, FLinearColor::White, BLEND_Translucent);
+    // Legacy helper retained for compatibility.
 }
 
 void AWordQuestHUD::DrawGameplayHeroSprite()
 {
-    // Disabled: gameplay hero is rendered by the world-space character widget.
+    // Gameplay hero is rendered in world space by AWordQuestCharacter.
 }
 
 void AWordQuestHUD::PlayFeedbackTone(float StartFrequency, float EndFrequency, float DurationSeconds, float Volume)
 {
-    if (!GetWorld()) return;
+    if (!GetWorld() || DurationSeconds <= 0.f) return;
 
     constexpr int32 SampleRate = 44100;
     const int32 NumSamples = FMath::Max(1, FMath::RoundToInt(DurationSeconds * SampleRate));
@@ -144,7 +107,10 @@ void AWordQuestHUD::PlayFeedbackTone(float StartFrequency, float EndFrequency, f
     TWeakObjectPtr<USoundWaveProcedural> WeakSound(Sound);
     GetWorld()->GetTimerManager().SetTimer(CleanupHandle, [WeakSelf, WeakSound]()
     {
-        if (WeakSelf.IsValid() && WeakSound.IsValid()) WeakSelf->ActiveFeedbackSounds.Remove(WeakSound.Get());
+        if (WeakSelf.IsValid() && WeakSound.IsValid())
+        {
+            WeakSelf->ActiveFeedbackSounds.Remove(WeakSound.Get());
+        }
     }, DurationSeconds + 0.5f, false);
 }
 
@@ -186,19 +152,17 @@ void AWordQuestHUD::DrawFloatingMessages()
         ScreenPosition.X = FMath::Clamp(ScreenPosition.X, 120.f, Canvas->SizeX - 260.f);
         ScreenPosition.Y = FMath::Clamp(ScreenPosition.Y, 110.f, Canvas->SizeY - 125.f);
 
-        const uint8 Alpha = static_cast<uint8>(255.f * (1.f - Progress));
         FColor TextColor = Message.Color;
-        TextColor.A = Alpha;
-        const float TextScale = 0.95f;
-
+        TextColor.A = static_cast<uint8>(255.f * (1.f - Progress));
         Canvas->SetDrawColor(TextColor);
-        Canvas->DrawText(Font, Message.Text, ScreenPosition.X, ScreenPosition.Y, TextScale, TextScale);
+        Canvas->DrawText(Font, Message.Text, ScreenPosition.X, ScreenPosition.Y, 1.05f, 1.05f);
     }
 }
 
 void AWordQuestHUD::DrawHUD()
 {
     Super::DrawHUD();
+
     UFont* Font = GetHUDTextFont();
     if (!Canvas || !Font) return;
 
@@ -223,6 +187,18 @@ void AWordQuestHUD::DrawHUD()
         DrawBlockText(Text, CenterX - (XL * Scale * 0.5f), Y, Scale, MainColor);
     };
 
+    auto DrawSelectionFrame = [this](float X, float Y, float W, float H)
+    {
+        const float T = 4.f;
+        const FLinearColor Glow(1.f, 0.76f, 0.10f, 0.16f);
+        const FLinearColor Gold(1.f, 0.82f, 0.16f, 1.f);
+        DrawRect(Glow, X, Y, W, H);
+        DrawRect(Gold, X, Y, W, T);
+        DrawRect(Gold, X, Y + H - T, W, T);
+        DrawRect(Gold, X, Y, T, H);
+        DrawRect(Gold, X + W - T, Y, T, H);
+    };
+
     if (GM->bMainMenuOpen)
     {
         if (MenuBackgroundTexture)
@@ -234,6 +210,18 @@ void AWordQuestHUD::DrawHUD()
             DrawRect(FLinearColor(0.02f, 0.03f, 0.05f, 0.98f), 0.f, 0.f, ScreenW, ScreenH);
             DrawCenteredBlockText(TEXT("WORD QUEST"), ScreenW * 0.5f, ScreenH * 0.28f, 1.75f, FColor(255, 226, 72));
             DrawCenteredBlockText(TEXT("START QUEST"), ScreenW * 0.5f, ScreenH * 0.58f, 1.05f, FColor(255, 226, 72));
+            DrawCenteredBlockText(TEXT("EXIT"), ScreenW * 0.5f, ScreenH * 0.72f, 1.00f, FColor::White);
+        }
+
+        // Match the two baked menu buttons in the current WordQuestIntro image.
+        // Selection 0 = START QUEST, selection 1 = EXIT.
+        if (GM->MainMenuSelection == 0)
+        {
+            DrawSelectionFrame(ScreenW * 0.360f, ScreenH * 0.558f, ScreenW * 0.282f, ScreenH * 0.104f);
+        }
+        else
+        {
+            DrawSelectionFrame(ScreenW * 0.378f, ScreenH * 0.705f, ScreenW * 0.232f, ScreenH * 0.088f);
         }
         return;
     }
@@ -245,46 +233,46 @@ void AWordQuestHUD::DrawHUD()
     if (GM->bGameOver)
     {
         DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.82f), 0.f, 0.f, ScreenW, ScreenH);
-        DrawCenteredBlockText(TEXT("GAME OVER"), ScreenW * 0.5f, ScreenH * 0.22f, 1.85f, FColor::Red);
-        DrawCenteredBlockText(FString::Printf(TEXT("STAGE %d - %s"), GM->CurrentStage, *StageName), ScreenW * 0.5f, ScreenH * 0.42f, 0.90f, FColor::White);
-        DrawCenteredBlockText(TEXT("1. RESTART CURRENT STAGE"), ScreenW * 0.5f, ScreenH * 0.56f, 0.95f, FColor::White);
-        DrawCenteredBlockText(TEXT("2. MAIN MENU"), ScreenW * 0.5f, ScreenH * 0.65f, 0.95f, FColor::White);
-        DrawCenteredBlockText(TEXT("PRESS 1 OR 2"), ScreenW * 0.5f, ScreenH * 0.76f, 0.70f, FColor::Silver);
+        DrawCenteredBlockText(TEXT("GAME OVER"), ScreenW * 0.5f, ScreenH * 0.22f, 1.90f, FColor::Red);
+        DrawCenteredBlockText(FString::Printf(TEXT("STAGE %d - %s"), GM->CurrentStage, *StageName), ScreenW * 0.5f, ScreenH * 0.42f, 1.00f, FColor::White);
+        DrawCenteredBlockText(TEXT("1. RESTART CURRENT STAGE"), ScreenW * 0.5f, ScreenH * 0.56f, 1.05f, FColor::White);
+        DrawCenteredBlockText(TEXT("2. MAIN MENU"), ScreenW * 0.5f, ScreenH * 0.65f, 1.05f, FColor::White);
+        DrawCenteredBlockText(TEXT("PRESS 1 OR 2"), ScreenW * 0.5f, ScreenH * 0.76f, 0.78f, FColor::Silver);
         return;
     }
 
     if (GM->bQuestComplete)
     {
         DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.84f), 0.f, 0.f, ScreenW, ScreenH);
-        DrawCenteredBlockText(TEXT("QUEST COMPLETE!"), ScreenW * 0.5f, ScreenH * 0.25f, 1.60f, FColor(255, 220, 70));
-        DrawCenteredBlockText(TEXT("You have completed the quest."), ScreenW * 0.5f, ScreenH * 0.43f, 0.95f, FColor::White);
-        DrawCenteredBlockText(TEXT("Thank you for playing!"), ScreenW * 0.5f, ScreenH * 0.52f, 0.95f, FColor(170, 255, 130));
-        DrawCenteredBlockText(TEXT("PRESS ENTER TO RETURN TO MAIN MENU"), ScreenW * 0.5f, ScreenH * 0.69f, 0.68f, FColor::Silver);
+        DrawCenteredBlockText(TEXT("QUEST COMPLETE!"), ScreenW * 0.5f, ScreenH * 0.25f, 1.70f, FColor(255, 220, 70));
+        DrawCenteredBlockText(TEXT("YOU HAVE COMPLETED THE QUEST."), ScreenW * 0.5f, ScreenH * 0.43f, 1.00f, FColor::White);
+        DrawCenteredBlockText(TEXT("THANK YOU FOR PLAYING!"), ScreenW * 0.5f, ScreenH * 0.52f, 1.00f, FColor(170, 255, 130));
+        DrawCenteredBlockText(TEXT("PRESS ENTER TO RETURN TO MAIN MENU"), ScreenW * 0.5f, ScreenH * 0.69f, 0.78f, FColor::Silver);
         return;
     }
 
     if (GM->bShopOpen && !bShopWasOpen) PlayFeedbackTone(520.f, 1100.f, 0.60f, 0.48f);
     bShopWasOpen = GM->bShopOpen;
 
-    DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.68f), 20.f, 20.f, 700.f, 136.f);
-    DrawBlockText(FString::Printf(TEXT("STAGE %d - %s    WAVE %d/5"), GM->CurrentStage, *StageName, GM->CurrentWave), 35.f, 28.f, 0.80f, FColor::White);
-    DrawBlockText(FString::Printf(TEXT("HP: %d/%d"), GI->PlayerState.CurrentHP, GI->PlayerState.MaxHP), 35.f, 61.f, 0.74f, FColor(80, 255, 80));
-    DrawBlockText(FString::Printf(TEXT("COINS: %d"), GI->PlayerState.Coins), 175.f, 61.f, 0.74f, FColor(255, 220, 60));
-    DrawBlockText(FString::Printf(TEXT("DAMAGE: %d"), GI->PlayerState.Damage), 315.f, 61.f, 0.74f, FColor(255, 90, 90));
-    DrawBlockText(GI->PlayerState.bHasSword ? TEXT("SWORD: COLLECTED") : TEXT("SWORD: FIND IT AHEAD"), 35.f, 92.f, 0.68f, FColor::White);
-    DrawBlockText(FString::Printf(TEXT("STAR BLOCKS: %d"), GI->PlayerState.StarProtectionHits), 35.f, 117.f, 0.68f, GI->PlayerState.StarProtectionHits > 0 ? FColor::Cyan : FColor::Silver);
+    DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.68f), 20.f, 20.f, 760.f, 150.f);
+    DrawBlockText(FString::Printf(TEXT("STAGE %d - %s    WAVE %d/5"), GM->CurrentStage, *StageName, GM->CurrentWave), 35.f, 28.f, 0.92f, FColor::White);
+    DrawBlockText(FString::Printf(TEXT("HP: %d/%d"), GI->PlayerState.CurrentHP, GI->PlayerState.MaxHP), 35.f, 67.f, 0.84f, FColor(80, 255, 80));
+    DrawBlockText(FString::Printf(TEXT("COINS: %d"), GI->PlayerState.Coins), 185.f, 67.f, 0.84f, FColor(255, 220, 60));
+    DrawBlockText(FString::Printf(TEXT("DAMAGE: %d"), GI->PlayerState.Damage), 335.f, 67.f, 0.84f, FColor(255, 90, 90));
+    DrawBlockText(GI->PlayerState.bHasSword ? TEXT("SWORD: COLLECTED") : TEXT("SWORD: FIND IT AHEAD"), 35.f, 106.f, 0.78f, FColor::White);
+    DrawBlockText(FString::Printf(TEXT("STAR BLOCKS: %d"), GI->PlayerState.StarProtectionHits), 35.f, 134.f, 0.78f, GI->PlayerState.StarProtectionHits > 0 ? FColor::Cyan : FColor::Silver);
 
     if (GM->bShopOpen)
     {
         const float PanelX = ScreenW * 0.09f;
         const float PanelY = ScreenH * 0.15f;
         const float PanelW = ScreenW * 0.82f;
-        const float PanelH = 420.f;
+        const float PanelH = 430.f;
         DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.90f), PanelX, PanelY, PanelW, PanelH);
 
-        DrawBlockText(FString::Printf(TEXT("STAGE %d CLEAR - SHOP"), GM->CurrentStage), PanelX + 36.f, PanelY + 18.f, 0.88f, FColor::Yellow);
-        DrawBlockText(FString::Printf(TEXT("Coins: %d"), GI->PlayerState.Coins), PanelX + 36.f, PanelY + 70.f, 0.78f, FColor::White);
-        DrawBlockText(TEXT("Each item can be bought once per shop visit."), PanelX + 210.f, PanelY + 72.f, 0.64f, FColor::White);
+        DrawBlockText(FString::Printf(TEXT("STAGE %d CLEAR - SHOP"), GM->CurrentStage), PanelX + 36.f, PanelY + 18.f, 1.00f, FColor::Yellow);
+        DrawBlockText(FString::Printf(TEXT("COINS: %d"), GI->PlayerState.Coins), PanelX + 36.f, PanelY + 72.f, 0.88f, FColor::White);
+        DrawBlockText(TEXT("EACH ITEM CAN BE BOUGHT ONCE PER SHOP VISIT."), PanelX + 210.f, PanelY + 75.f, 0.72f, FColor::White);
 
         auto ShopStatus = [](bool bBought, bool bCanBuy, const TCHAR* ReadyText, const TCHAR* UnavailableText)
         {
@@ -296,46 +284,46 @@ void AWordQuestHUD::DrawHUD()
         const FString StarStatus = ShopStatus(GI->IsStarBoughtThisVisit(), GI->CanBuyStar(), TEXT("READY"), TEXT("NEED 10 COINS"));
         const FString ArmourStatus = ShopStatus(GI->IsArmourBoughtThisVisit(), GI->CanBuyArmour(), TEXT("READY"), TEXT("NEED 25 COINS"));
 
-        DrawBlockText(FString::Printf(TEXT("1. APPLE   3 COINS   +1 HP   [%s]"), *AppleStatus), PanelX + 48.f, PanelY + 142.f, 0.74f, GI->CanBuyApple() ? FColor::Green : FColor::Silver);
-        DrawBlockText(FString::Printf(TEXT("2. STAR   10 COINS   BLOCKS NEXT 2 HITS   [%s]"), *StarStatus), PanelX + 48.f, PanelY + 198.f, 0.74f, GI->CanBuyStar() ? FColor::Cyan : FColor::Silver);
-        DrawBlockText(FString::Printf(TEXT("3. ARMOUR   25 COINS   +10 MAX HP & +10 HP   [%s]"), *ArmourStatus), PanelX + 48.f, PanelY + 254.f, 0.74f, GI->CanBuyArmour() ? FColor::Yellow : FColor::Silver);
-        DrawBlockText(TEXT("1 / 2 / 3: BUY      4 OR ENTER: CONTINUE"), PanelX + 36.f, PanelY + 352.f, 0.70f, FColor::White);
+        DrawBlockText(FString::Printf(TEXT("1. APPLE   3 COINS   +1 HP   [%s]"), *AppleStatus), PanelX + 48.f, PanelY + 145.f, 0.86f, GI->CanBuyApple() ? FColor::Green : FColor::Silver);
+        DrawBlockText(FString::Printf(TEXT("2. STAR   10 COINS   BLOCKS NEXT 2 HITS   [%s]"), *StarStatus), PanelX + 48.f, PanelY + 203.f, 0.86f, GI->CanBuyStar() ? FColor::Cyan : FColor::Silver);
+        DrawBlockText(FString::Printf(TEXT("3. ARMOUR   25 COINS   +10 MAX HP & +10 HP   [%s]"), *ArmourStatus), PanelX + 48.f, PanelY + 261.f, 0.86f, GI->CanBuyArmour() ? FColor::Yellow : FColor::Silver);
+        DrawBlockText(TEXT("1 / 2 / 3: BUY      4 OR ENTER: CONTINUE"), PanelX + 36.f, PanelY + 365.f, 0.78f, FColor::White);
         DrawFloatingMessages();
         return;
     }
 
     if (GM->bStageClear)
     {
-        DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.78f), ScreenW * 0.18f, ScreenH * 0.30f, ScreenW * 0.64f, 176.f);
-        DrawCenteredBlockText(FString::Printf(TEXT("STAGE %d COMPLETE"), GM->CurrentStage), ScreenW * 0.5f, ScreenH * 0.34f, 0.92f, FColor::Yellow);
-        DrawCenteredBlockText(TEXT("CONTINUE THROUGH THE SHOP TO THE NEXT STAGE"), ScreenW * 0.5f, ScreenH * 0.45f, 0.64f, FColor::White);
+        DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.78f), ScreenW * 0.18f, ScreenH * 0.30f, ScreenW * 0.64f, 188.f);
+        DrawCenteredBlockText(FString::Printf(TEXT("STAGE %d COMPLETE"), GM->CurrentStage), ScreenW * 0.5f, ScreenH * 0.34f, 1.05f, FColor::Yellow);
+        DrawCenteredBlockText(TEXT("CONTINUE THROUGH THE SHOP TO THE NEXT STAGE"), ScreenW * 0.5f, ScreenH * 0.45f, 0.75f, FColor::White);
         DrawFloatingMessages();
         return;
     }
 
     if (!GM->bBattleActive)
     {
-        DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.50f), ScreenW * 0.24f, ScreenH - 76.f, ScreenW * 0.52f, 46.f);
-        DrawCenteredBlockText(TEXT("A / D OR ARROWS: MOVE       SPACE: JUMP"), ScreenW * 0.5f, ScreenH - 64.f, 0.64f, FColor::White);
+        DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.50f), ScreenW * 0.24f, ScreenH - 82.f, ScreenW * 0.52f, 52.f);
+        DrawCenteredBlockText(TEXT("A / D OR ARROWS: MOVE       SPACE: JUMP"), ScreenW * 0.5f, ScreenH - 68.f, 0.76f, FColor::White);
         DrawFloatingMessages();
         return;
     }
 
     const float PanelX = ScreenW * 0.055f;
-    const float PanelY = ScreenH * 0.57f;
+    const float PanelY = ScreenH * 0.54f;
     const float PanelW = ScreenW * 0.89f;
-    const float PanelH = ScreenH * 0.39f;
+    const float PanelH = ScreenH * 0.43f;
     DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.90f), PanelX, PanelY, PanelW, PanelH);
 
     const bool bBossBattle = GM->CurrentEnemy && GM->CurrentEnemy->bBoss;
-    DrawBlockText(bBossBattle ? TEXT("BOSS BATTLE") : TEXT("WORD BATTLE"), PanelX + 22.f, PanelY + 8.f, 0.82f, FColor::Yellow);
+    DrawBlockText(bBossBattle ? TEXT("BOSS BATTLE") : TEXT("WORD BATTLE"), PanelX + 22.f, PanelY + 8.f, 0.95f, FColor::Yellow);
 
     if (GM->CurrentEnemy)
     {
         const int32 EnemyHP = GM->CurrentEnemy->CurrentHP;
         const int32 EnemyMaxHP = GM->CurrentEnemy->MaxHP;
-        const float BarW = 190.f;
-        const float BarH = 16.f;
+        const float BarW = 205.f;
+        const float BarH = 17.f;
         const float BarX = PanelX + PanelW - BarW - 28.f;
         const float BarY = PanelY + 16.f;
         const float FillPercent = EnemyMaxHP > 0 ? static_cast<float>(EnemyHP) / static_cast<float>(EnemyMaxHP) : 0.f;
@@ -343,10 +331,10 @@ void AWordQuestHUD::DrawHUD()
         DrawRect(FLinearColor(0.10f, 0.10f, 0.10f, 1.f), BarX - 2.f, BarY - 2.f, BarW + 4.f, BarH + 4.f);
         DrawRect(FLinearColor(0.30f, 0.04f, 0.04f, 1.f), BarX, BarY, BarW, BarH);
         DrawRect(FLinearColor(0.92f, 0.16f, 0.16f, 1.f), BarX, BarY, BarW * FMath::Clamp(FillPercent, 0.f, 1.f), BarH);
-        DrawBlockText(FString::Printf(TEXT("ENEMY HP %d/%d"), EnemyHP, EnemyMaxHP), BarX, BarY + 21.f, 0.60f, FColor::White);
+        DrawBlockText(FString::Printf(TEXT("ENEMY HP %d/%d"), EnemyHP, EnemyMaxHP), BarX, BarY + 22.f, 0.70f, FColor::White);
     }
 
-    const float PromptScale = 1.00f;
+    const float PromptScale = 1.17f;
     const float MaxPromptWidth = PanelW - 60.f;
     FString Line1 = GM->CurrentQuestion.Prompt;
     FString Line2;
@@ -384,15 +372,15 @@ void AWordQuestHUD::DrawHUD()
         }
     }
 
-    DrawBlockText(Line1, PanelX + 22.f, PanelY + 54.f, PromptScale, FColor::White);
+    DrawBlockText(Line1, PanelX + 22.f, PanelY + 56.f, PromptScale, FColor::White);
     if (!Line2.IsEmpty())
     {
-        DrawBlockText(Line2, PanelX + 22.f, PanelY + 86.f, PromptScale, FColor::White);
+        DrawBlockText(Line2, PanelX + 22.f, PanelY + 94.f, PromptScale, FColor::White);
     }
 
-    const float AnswerScale = 0.84f;
-    const float AnswerStartY = PanelY + (Line2.IsEmpty() ? 108.f : 136.f);
-    const float AnswerGap = 37.f;
+    const float AnswerScale = 1.03f;
+    const float AnswerStartY = PanelY + (Line2.IsEmpty() ? 120.f : 150.f);
+    const float AnswerGap = 36.f;
     const float FeedbackProgress = GM->bAnswerFeedbackActive && GetWorld() ? FMath::Clamp(GetWorld()->GetTimeSeconds() - GM->AnswerFeedbackStartTime, 0.f, 1.f) : 0.f;
 
     for (int32 i = 0; i < GM->CurrentQuestion.Answers.Num() && i < 4; ++i)
@@ -407,19 +395,25 @@ void AWordQuestHUD::DrawHUD()
             {
                 AnswerColor = FColor::Green;
                 Y -= FeedbackProgress * 18.f;
-                DrawRect(FLinearColor(0.05f, 0.35f, 0.08f, 0.72f), X - 10.f, Y - 2.f, PanelW * 0.72f, 31.f);
+                DrawRect(FLinearColor(0.05f, 0.35f, 0.08f, 0.72f), X - 10.f, Y - 2.f, PanelW * 0.72f, 33.f);
             }
             else
             {
                 AnswerColor = FColor::Red;
                 X += FMath::Sin(FeedbackProgress * PI * 10.f) * 13.f;
-                DrawRect(FLinearColor(0.45f, 0.04f, 0.04f, 0.72f), X - 10.f, Y - 2.f, PanelW * 0.72f, 31.f);
+                DrawRect(FLinearColor(0.45f, 0.04f, 0.04f, 0.72f), X - 10.f, Y - 2.f, PanelW * 0.72f, 33.f);
             }
         }
 
         DrawBlockText(FString::Printf(TEXT("%d. %s"), i + 1, *GM->CurrentQuestion.Answers[i]), X, Y, AnswerScale, AnswerColor);
     }
 
-    DrawBlockText(GM->bAnswerFeedbackActive ? TEXT("CHECKING...") : TEXT("PRESS 1, 2, 3 OR 4 TO ANSWER"), PanelX + 22.f, PanelY + PanelH - 31.f, 0.68f, GM->bAnswerFeedbackActive ? FColor::Silver : FColor::Green);
+    DrawBlockText(
+        GM->bAnswerFeedbackActive ? TEXT("CHECKING...") : TEXT("PRESS 1, 2, 3 OR 4 TO ANSWER"),
+        PanelX + 22.f,
+        PanelY + PanelH - 34.f,
+        0.78f,
+        GM->bAnswerFeedbackActive ? FColor::Silver : FColor::Green);
+
     DrawFloatingMessages();
 }
