@@ -1,6 +1,6 @@
 #include "WordQuestCharacter.h"
 #include "WordQuestGameInstance.h"
-#include "WordQuestFloatingText.h"
+#include "WordQuestHUD.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -8,6 +8,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Engine/World.h"
+#include "GameFramework/PlayerController.h"
 #include "TimerManager.h"
 #include "UObject/ConstructorHelpers.h"
 
@@ -90,14 +91,13 @@ void AWordQuestCharacter::SetBattleLocked(bool bLocked)
 
 void AWordQuestCharacter::ShowFloatingText(const FString& InText, const FColor& InColor, float HeightOffset)
 {
-    UWorld* World = GetWorld();
-    if (!World) return;
+    APlayerController* PC = Cast<APlayerController>(GetController());
+    if (!PC && GetWorld()) PC = GetWorld()->GetFirstPlayerController();
+    if (!PC) return;
 
-    const FVector SpawnLocation = GetActorLocation() + FVector(0.f, 0.f, HeightOffset);
-    AWordQuestFloatingText* FloatingText = World->SpawnActor<AWordQuestFloatingText>(SpawnLocation, FRotator(0.f, 90.f, 0.f));
-    if (FloatingText)
+    if (AWordQuestHUD* HUD = Cast<AWordQuestHUD>(PC->GetHUD()))
     {
-        FloatingText->SetupText(InText, InColor);
+        HUD->AddFloatingMessage(InText, InColor, GetActorLocation() + FVector(0.f, 0.f, HeightOffset));
     }
 }
 
