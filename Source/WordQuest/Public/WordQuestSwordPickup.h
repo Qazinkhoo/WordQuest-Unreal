@@ -11,13 +11,21 @@ UCLASS()
 class WORDQUEST_API AWordQuestSwordPickup : public AActor
 {
     GENERATED_BODY()
+
 public:
     AWordQuestSwordPickup();
+
 protected:
+    virtual void BeginPlay() override;
     virtual void NotifyActorBeginOverlap(AActor* OtherActor) override;
+
 public:
     UPROPERTY(VisibleAnywhere) TObjectPtr<UBoxComponent> Trigger;
+
+    // Block-built diamond sword pieces.
     UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> Blade;
+    UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> BladeHighlight;
     UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> Guard;
     UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> Handle;
+    UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> Pommel;
 };
