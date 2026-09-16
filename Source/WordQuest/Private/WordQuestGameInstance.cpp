@@ -29,8 +29,14 @@ void UWordQuestGameInstance::SaveStageCheckpoint()
 bool UWordQuestGameInstance::RestoreStageCheckpoint()
 {
     if (!bHasStageCheckpoint) return false;
+
     PlayerState = StageCheckpoint;
     PlayerState.Wave = 1;
+
+    // A restart is a clean retry of the current stage.
+    PlayerState.CurrentHP = PlayerState.MaxHP;
+    PlayerState.StarProtectionHits = 0;
+
     ResetShopStock();
     return true;
 }
