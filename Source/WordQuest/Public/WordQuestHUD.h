@@ -4,6 +4,8 @@
 #include "GameFramework/HUD.h"
 #include "WordQuestHUD.generated.h"
 
+class USoundWaveProcedural;
+
 struct FWordQuestHUDMessage
 {
     FString Text;
@@ -26,4 +28,10 @@ public:
 private:
     TArray<FWordQuestHUDMessage> FloatingMessages;
     void DrawFloatingMessages();
+    void PlayFeedbackTone(float StartFrequency, float EndFrequency, float DurationSeconds, float Volume = 0.4f);
+
+    bool bShopWasOpen = false;
+
+    UPROPERTY()
+    TArray<TObjectPtr<USoundWaveProcedural>> ActiveFeedbackSounds;
 };
