@@ -1,6 +1,7 @@
 #include "WordQuestHUD.h"
 #include "WordQuestGameMode.h"
 #include "WordQuestGameInstance.h"
+#include "WordQuestEnemy.h"
 #include "Engine/Canvas.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
@@ -49,8 +50,11 @@ void AWordQuestHUD::DrawHUD()
 
     DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.82f), PanelX, PanelY, PanelW, PanelH);
 
+    const bool bBossBattle = GM->CurrentEnemy && GM->CurrentEnemy->bBoss;
+    const FString BattleTitle = bBossBattle ? TEXT("BOSS BATTLE") : TEXT("WORD BATTLE");
+
     Canvas->SetDrawColor(FColor::Yellow);
-    Canvas->DrawText(GEngine->GetLargeFont(), GM->CurrentEnemy && GM->CurrentEnemy->bBoss ? TEXT("BOSS BATTLE") : TEXT("WORD BATTLE"), PanelX + 28.f, PanelY + 22.f, 1.0f, 1.0f);
+    Canvas->DrawText(GEngine->GetLargeFont(), BattleTitle, PanelX + 28.f, PanelY + 22.f, 1.0f, 1.0f);
 
     Canvas->SetDrawColor(FColor::White);
     Canvas->DrawText(GEngine->GetSmallFont(), GM->CurrentQuestion.Prompt, PanelX + 28.f, PanelY + 72.f, 1.25f, 1.25f);
