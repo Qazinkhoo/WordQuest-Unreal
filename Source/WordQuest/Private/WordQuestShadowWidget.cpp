@@ -1,12 +1,9 @@
 #include "WordQuestShadowWidget.h"
-#include "Styling/SlateColorBrush.h"
-#include "Widgets/Images/SImage.h"
+#include "Widgets/Layout/SBorder.h"
 
 TSharedRef<SWidget> UWordQuestShadowWidget::RebuildWidget()
 {
-    static FSlateColorBrush ShadowBrush(FLinearColor::White);
-
-    return SNew(SImage)
-        .Image(&ShadowBrush)
-        .ColorAndOpacity(FLinearColor(0.f, 0.f, 0.f, 0.42f));
+    return SNew(SBorder)
+        .Padding(0.f)
+        .BorderBackgroundColor(FLinearColor(0.f, 0.f, 0.f, 0.42f));
 }
