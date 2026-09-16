@@ -22,6 +22,7 @@ public:
 
     UFUNCTION(BlueprintCallable) void ConfigureEnemy(int32 InWave, bool bInBoss);
     UFUNCTION(BlueprintCallable) bool ReceiveWordDamage(int32 DamageAmount);
+    UFUNCTION(BlueprintCallable) void PlayHitPulse();
 
     UPROPERTY(VisibleAnywhere) TObjectPtr<UBoxComponent> Trigger;
     UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> Visual;
