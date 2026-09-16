@@ -13,9 +13,10 @@ public:
     virtual void SetupInputComponent() override;
 
 private:
-    void SubmitAnswer1();
-    void SubmitAnswer2();
-    void SubmitAnswer3();
-    void SubmitAnswer4();
+    void PressOption1();
+    void PressOption2();
+    void PressOption3();
+    void PressOption4();
+    void PressEnter();
     void SubmitAnswerIndex(int32 AnswerIndex);
 };
