@@ -140,8 +140,6 @@ void AWordQuestHUD::DrawFloatingMessages()
         TextColor.A = Alpha;
         const float TextScale = 1.35f;
 
-        Canvas->SetDrawColor(FColor(0, 0, 0, Alpha));
-        Canvas->DrawText(Font, Message.Text, ScreenPosition.X + 3.f, ScreenPosition.Y + 3.f, TextScale, TextScale);
         Canvas->SetDrawColor(TextColor);
         Canvas->DrawText(Font, Message.Text, ScreenPosition.X, ScreenPosition.Y, TextScale, TextScale);
     }
@@ -160,11 +158,9 @@ void AWordQuestHUD::DrawHUD()
     const float ScreenW = Canvas->SizeX;
     const float ScreenH = Canvas->SizeY;
 
+    // Clean text renderer: no heavy shadow/duplicate text layers.
     auto DrawBlockText = [this, Font](const FString& Text, float X, float Y, float Scale, const FColor& MainColor)
     {
-        Canvas->SetDrawColor(FColor::Black);
-        Canvas->DrawText(Font, Text, X + 5.f, Y + 5.f, Scale, Scale);
-        Canvas->DrawText(Font, Text, X - 2.f, Y + 2.f, Scale, Scale);
         Canvas->SetDrawColor(MainColor);
         Canvas->DrawText(Font, Text, X, Y, Scale, Scale);
     };
@@ -285,25 +281,55 @@ void AWordQuestHUD::DrawHUD()
     DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.90f), PanelX, PanelY, PanelW, PanelH);
 
     const bool bBossBattle = GM->CurrentEnemy && GM->CurrentEnemy->bBoss;
-    DrawBlockText(bBossBattle ? TEXT("BOSS BATTLE") : TEXT("WORD BATTLE"), PanelX + 22.f, PanelY + 5.f, 1.12f, FColor::Yellow);
+    DrawBlockText(bBossBattle ? TEXT("BOSS BATTLE") : TEXT("WORD BATTLE"), PanelX + 22.f, PanelY + 5.f, 1.14f, FColor::Yellow);
 
-    // Wrap longer prompts into two lines so they never collide with the answers.
+    // Wrap only when the rendered text really exceeds the usable panel width.
+    const float PromptScale = 1.52f;
+    const float MaxPromptWidth = PanelW - 54.f;
     FString Line1 = GM->CurrentQuestion.Prompt;
     FString Line2;
-    const int32 MaxChars = 46;
-    if (Line1.Len() > MaxChars)
+
+    float FullTextWidth = 0.f;
+    float FullTextHeight = 0.f;
+    Canvas->StrLen(Font, Line1, FullTextWidth, FullTextHeight);
+
+    if (FullTextWidth * PromptScale > MaxPromptWidth)
     {
-        int32 BreakAt = MaxChars;
-        while (BreakAt > 20 && Line1[BreakAt] != TCHAR(' ')) --BreakAt;
-        if (BreakAt <= 20) BreakAt = MaxChars;
-        Line2 = Line1.Mid(BreakAt + 1);
-        Line1 = Line1.Left(BreakAt);
+        int32 BestBreak = INDEX_NONE;
+        for (int32 CharIndex = 0; CharIndex < Line1.Len(); ++CharIndex)
+        {
+            if (Line1[CharIndex] != TCHAR(' ')) continue;
+
+            const FString Candidate = Line1.Left(CharIndex);
+            float CandidateWidth = 0.f;
+            float CandidateHeight = 0.f;
+            Canvas->StrLen(Font, Candidate, CandidateWidth, CandidateHeight);
+
+            if (CandidateWidth * PromptScale <= MaxPromptWidth)
+            {
+                BestBreak = CharIndex;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        if (BestBreak != INDEX_NONE)
+        {
+            Line2 = Line1.Mid(BestBreak + 1);
+            Line1 = Line1.Left(BestBreak);
+        }
     }
 
-    DrawBlockText(Line1, PanelX + 22.f, PanelY + 42.f, 1.38f, FColor::White);
-    if (!Line2.IsEmpty()) DrawBlockText(Line2, PanelX + 22.f, PanelY + 80.f, 1.38f, FColor::White);
+    DrawBlockText(Line1, PanelX + 22.f, PanelY + 41.f, PromptScale, FColor::White);
+    if (!Line2.IsEmpty())
+    {
+        DrawBlockText(Line2, PanelX + 22.f, PanelY + 76.f, PromptScale, FColor::White);
+    }
 
-    const float AnswerStartY = PanelY + (Line2.IsEmpty() ? 104.f : 124.f);
+    const float AnswerScale = 1.38f;
+    const float AnswerStartY = PanelY + (Line2.IsEmpty() ? 91.f : 110.f);
     const float AnswerGap = 38.f;
     const float FeedbackProgress = GM->bAnswerFeedbackActive && GetWorld() ? FMath::Clamp(GetWorld()->GetTimeSeconds() - GM->AnswerFeedbackStartTime, 0.f, 1.f) : 0.f;
 
@@ -319,19 +345,19 @@ void AWordQuestHUD::DrawHUD()
             {
                 AnswerColor = FColor::Green;
                 Y -= FeedbackProgress * 22.f;
-                DrawRect(FLinearColor(0.05f, 0.35f, 0.08f, 0.72f), X - 12.f, Y - 3.f, PanelW * 0.72f, 34.f);
+                DrawRect(FLinearColor(0.05f, 0.35f, 0.08f, 0.72f), X - 12.f, Y - 3.f, PanelW * 0.72f, 35.f);
             }
             else
             {
                 AnswerColor = FColor::Red;
                 X += FMath::Sin(FeedbackProgress * PI * 10.f) * 16.f;
-                DrawRect(FLinearColor(0.45f, 0.04f, 0.04f, 0.72f), X - 12.f, Y - 3.f, PanelW * 0.72f, 34.f);
+                DrawRect(FLinearColor(0.45f, 0.04f, 0.04f, 0.72f), X - 12.f, Y - 3.f, PanelW * 0.72f, 35.f);
             }
         }
 
-        DrawBlockText(FString::Printf(TEXT("%d. %s"), i + 1, *GM->CurrentQuestion.Answers[i]), X, Y, 1.28f, AnswerColor);
+        DrawBlockText(FString::Printf(TEXT("%d. %s"), i + 1, *GM->CurrentQuestion.Answers[i]), X, Y, AnswerScale, AnswerColor);
     }
 
-    DrawBlockText(GM->bAnswerFeedbackActive ? TEXT("CHECKING...") : TEXT("PRESS 1, 2, 3 OR 4 TO ANSWER"), PanelX + 22.f, PanelY + PanelH - 35.f, 0.95f, GM->bAnswerFeedbackActive ? FColor::Silver : FColor::Green);
+    DrawBlockText(GM->bAnswerFeedbackActive ? TEXT("CHECKING...") : TEXT("PRESS 1, 2, 3 OR 4 TO ANSWER"), PanelX + 22.f, PanelY + PanelH - 34.f, 0.96f, GM->bAnswerFeedbackActive ? FColor::Silver : FColor::Green);
     DrawFloatingMessages();
 }
