@@ -34,6 +34,7 @@ void AWordQuestGameMode::BeginPlay()
     bStageClear = false;
     bShopOpen = false;
     bGameOver = false;
+    bQuestComplete = false;
     bMainMenuOpen = false;
     bAnswerFeedbackActive = false;
     SelectedAnswerIndex = INDEX_NONE;
@@ -125,7 +126,7 @@ void AWordQuestGameMode::ReturnToMainMenu()
 
 void AWordQuestGameMode::StartEncounter(AWordQuestEnemy* Enemy)
 {
-    if (!Enemy || bMainMenuOpen || bGameOver || bBattleActive || bStageClear || bShopOpen) return;
+    if (!Enemy || bMainMenuOpen || bGameOver || bQuestComplete || bBattleActive || bStageClear || bShopOpen) return;
     if (Enemy->WaveNumber != CurrentWave) return;
 
     CurrentEnemy = Enemy;
@@ -191,7 +192,7 @@ void AWordQuestGameMode::PlayTone(float StartFrequency, float EndFrequency, floa
 
 bool AWordQuestGameMode::SubmitAnswer(int32 AnswerIndex)
 {
-    if (bMainMenuOpen || bGameOver || bAnswerFeedbackActive || !bBattleActive || !CurrentEnemy) return false;
+    if (bMainMenuOpen || bGameOver || bQuestComplete || bAnswerFeedbackActive || !bBattleActive || !CurrentEnemy) return false;
     if (!CurrentQuestion.Answers.IsValidIndex(AnswerIndex)) return false;
 
     SelectedAnswerIndex = AnswerIndex;
@@ -243,7 +244,7 @@ void AWordQuestGameMode::ResolveSelectedAnswer()
             SelectedAnswerIndex = INDEX_NONE;
             AdvanceWave();
 
-            if (Player) Player->SetBattleLocked(bStageClear || bShopOpen || bGameOver);
+            if (Player) Player->SetBattleLocked(bStageClear || bShopOpen || bGameOver || bQuestComplete);
             OnBattleStateChanged();
             return;
         }
@@ -296,6 +297,23 @@ void AWordQuestGameMode::AdvanceWave()
     if (CurrentWave >= 5)
     {
         bStageClear = true;
+
+        // Stage 3 is the final stage. Defeating its boss completes the entire
+        // adventure immediately; there is no fourth stage and no final shop.
+        if (CurrentStage >= 3)
+        {
+            bQuestComplete = true;
+            bShopOpen = false;
+            bBattleActive = false;
+            PlayTone(520.f, 1320.f, 1.15f, 0.5f);
+            if (AWordQuestCharacter* Player = Cast<AWordQuestCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0)))
+            {
+                Player->SetBattleLocked(true);
+            }
+            OnStageCleared();
+            return;
+        }
+
         PlayTone(440.f, 1040.f, 0.75f, 0.45f);
         OpenStageShop();
         OnStageCleared();
@@ -308,6 +326,9 @@ void AWordQuestGameMode::AdvanceWave()
 
 void AWordQuestGameMode::OpenStageShop()
 {
+    // Only stages 1 and 2 lead to a shop/next-stage transition.
+    if (CurrentStage >= 3) return;
+
     bShopOpen = true;
     if (UWordQuestGameInstance* GI = GetGameInstance<UWordQuestGameInstance>()) GI->ResetShopStock();
     if (AWordQuestCharacter* Player = Cast<AWordQuestCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0))) Player->SetBattleLocked(true);
@@ -337,8 +358,8 @@ void AWordQuestGameMode::LeaveStageShop()
     if (CurrentStage == 1) { StartStageTwo(); return; }
     if (CurrentStage == 2) { StartStageThree(); return; }
 
+    // There is intentionally no transition beyond stage 3.
     bShopOpen = false;
-    if (AWordQuestCharacter* Player = Cast<AWordQuestCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0))) Player->SetBattleLocked(true);
 }
 
 void AWordQuestGameMode::StartStageTwo()
@@ -354,6 +375,7 @@ void AWordQuestGameMode::StartStageTwo()
     bBattleActive = false;
     bStageClear = false;
     bGameOver = false;
+    bQuestComplete = false;
     CurrentEnemy = nullptr;
     UGameplayStatics::OpenLevel(this, FName(TEXT("Stage02_SunnyMeadow")));
 }
@@ -371,6 +393,7 @@ void AWordQuestGameMode::StartStageThree()
     bBattleActive = false;
     bStageClear = false;
     bGameOver = false;
+    bQuestComplete = false;
     CurrentEnemy = nullptr;
     UGameplayStatics::OpenLevel(this, FName(TEXT("Stage02_SunnyMeadow")));
 }
