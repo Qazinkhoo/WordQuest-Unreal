@@ -28,6 +28,7 @@ public:
     UPROPERTY(BlueprintReadOnly, Category="Word Quest") int32 SelectedAnswerIndex = INDEX_NONE;
     UPROPERTY(BlueprintReadOnly, Category="Word Quest") bool bSelectedAnswerCorrect = false;
     UPROPERTY(BlueprintReadOnly, Category="Word Quest") float AnswerFeedbackStartTime = 0.f;
+    UPROPERTY(BlueprintReadOnly, Category="Word Quest") int32 MainMenuSelection = 0; // 0 = Start Quest, 1 = Exit
     UPROPERTY(BlueprintReadOnly, Category="Word Quest") FWordQuestQuestion CurrentQuestion;
     UPROPERTY(BlueprintReadOnly, Category="Word Quest") TObjectPtr<AWordQuestEnemy> CurrentEnemy;
 
@@ -44,6 +45,9 @@ public:
     UFUNCTION(BlueprintCallable) void StartAdventureFromMenu();
     UFUNCTION(BlueprintCallable) void RestartCurrentStage();
     UFUNCTION(BlueprintCallable) void ReturnToMainMenu();
+    UFUNCTION(BlueprintCallable) void MoveMainMenuSelection(int32 Direction);
+    UFUNCTION(BlueprintCallable) void ActivateMainMenuSelection();
+    UFUNCTION(BlueprintCallable) void ExitGame();
 
     UFUNCTION(BlueprintImplementableEvent) void OnQuestionChanged();
     UFUNCTION(BlueprintImplementableEvent) void OnBattleStateChanged();
