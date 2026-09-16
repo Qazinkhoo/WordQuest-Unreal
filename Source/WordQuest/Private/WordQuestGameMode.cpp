@@ -34,12 +34,15 @@ void AWordQuestGameMode::BeginPlay()
     const bool bIsStageThreeMap = LevelName.Contains(TEXT("Stage03_CrystalCave"));
     const bool bIsStageTwoMap = LevelName.Contains(TEXT("Stage02_SunnyMeadow"));
 
-    if (bIsStageThreeMap)
+    // The GameInstance carries the intended stage across OpenLevel. Stage 3 can
+    // therefore use the Stage 2 base map as a clean level template when a
+    // Stage03_CrystalCave.umap has not been created yet.
+    if (GI->PlayerState.Stage == 3 || bIsStageThreeMap)
     {
         CurrentStage = 3;
         GI->PlayerState.Stage = 3;
     }
-    else if (bIsStageTwoMap)
+    else if (GI->PlayerState.Stage == 2 || bIsStageTwoMap)
     {
         CurrentStage = 2;
         GI->PlayerState.Stage = 2;
@@ -305,5 +308,8 @@ void AWordQuestGameMode::StartStageThree()
     bStageClear = false;
     CurrentEnemy = nullptr;
 
-    UGameplayStatics::OpenLevel(this, FName(TEXT("Stage03_CrystalCave")));
+    // Re-open the clean Stage 2 base map and let BeginPlay build Crystal Cave
+    // from the persistent Stage=3 state. This works immediately and does not
+    // require a Stage03 .umap binary to exist first.
+    UGameplayStatics::OpenLevel(this, FName(TEXT("Stage02_SunnyMeadow")));
 }
