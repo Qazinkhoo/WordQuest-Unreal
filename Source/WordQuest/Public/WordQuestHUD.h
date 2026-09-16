@@ -5,6 +5,7 @@
 #include "WordQuestHUD.generated.h"
 
 class USoundWaveProcedural;
+class UFont;
 
 struct FWordQuestHUDMessage
 {
@@ -21,6 +22,7 @@ class WORDQUEST_API AWordQuestHUD : public AHUD
     GENERATED_BODY()
 
 public:
+    AWordQuestHUD();
     virtual void DrawHUD() override;
 
     void AddFloatingMessage(const FString& InText, const FColor& InColor, const FVector& InWorldLocation, float InDuration = 1.35f);
@@ -29,8 +31,12 @@ private:
     TArray<FWordQuestHUDMessage> FloatingMessages;
     void DrawFloatingMessages();
     void PlayFeedbackTone(float StartFrequency, float EndFrequency, float DurationSeconds, float Volume = 0.4f);
+    UFont* GetHUDTextFont() const;
 
     bool bShopWasOpen = false;
+
+    UPROPERTY()
+    TObjectPtr<UFont> HDFont;
 
     UPROPERTY()
     TArray<TObjectPtr<USoundWaveProcedural>> ActiveFeedbackSounds;
