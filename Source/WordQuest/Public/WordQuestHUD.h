@@ -29,6 +29,11 @@ public:
 
     void AddFloatingMessage(const FString& InText, const FColor& InColor, const FVector& InWorldLocation, float InDuration = 1.35f);
 
+protected:
+    // Exposed to AWordQuestMenuHUD so the menu credit can use the exact same
+    // Word Quest typeface as the rest of the game.
+    UFont* GetHUDTextFont() const;
+
 private:
     TArray<FWordQuestHUDMessage> FloatingMessages;
     void DrawFloatingMessages();
@@ -36,7 +41,6 @@ private:
     void DrawMenuHeroSprite(float X, float Y, float W, float H);
     void DrawGameplayHeroSprite();
     void PlayFeedbackTone(float StartFrequency, float EndFrequency, float DurationSeconds, float Volume = 0.4f);
-    UFont* GetHUDTextFont() const;
 
     bool bShopWasOpen = false;
 
