@@ -18,6 +18,12 @@ AWordQuestGameMode::AWordQuestGameMode()
     PlayerControllerClass = AWordQuestPlayerController::StaticClass();
 }
 
+FName AWordQuestGameMode::GetBaseMapForStage(int32 Stage) const
+{
+    if (Stage <= 1) return FName(TEXT("Stage01_WhisperingForest"));
+    return FName(TEXT("Stage02_SunnyMeadow"));
+}
+
 void AWordQuestGameMode::BeginPlay()
 {
     Super::BeginPlay();
@@ -26,6 +32,8 @@ void AWordQuestGameMode::BeginPlay()
     bBattleActive = false;
     bStageClear = false;
     bShopOpen = false;
+    bGameOver = false;
+    bMainMenuOpen = false;
 
     UWordQuestGameInstance* GI = GetGameInstance<UWordQuestGameInstance>();
     if (!GI) return;
@@ -34,9 +42,6 @@ void AWordQuestGameMode::BeginPlay()
     const bool bIsStageThreeMap = LevelName.Contains(TEXT("Stage03_CrystalCave"));
     const bool bIsStageTwoMap = LevelName.Contains(TEXT("Stage02_SunnyMeadow"));
 
-    // The GameInstance carries the intended stage across OpenLevel. Stage 3 can
-    // therefore use the Stage 2 base map as a clean level template when a
-    // Stage03_CrystalCave.umap has not been created yet.
     if (GI->PlayerState.Stage == 3 || bIsStageThreeMap)
     {
         CurrentStage = 3;
@@ -50,12 +55,21 @@ void AWordQuestGameMode::BeginPlay()
     else
     {
         CurrentStage = 1;
-        if (GI->PlayerState.CurrentHP <= 0) GI->StartNewAdventure();
         GI->PlayerState.Stage = 1;
     }
 
     GI->PlayerState.Wave = 1;
     CurrentWave = 1;
+
+    if (CurrentStage == 1 && GI->ConsumeShowMainMenuOnStageOneLoad())
+    {
+        bMainMenuOpen = true;
+        if (AWordQuestCharacter* Player = Cast<AWordQuestCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0)))
+        {
+            Player->SetBattleLocked(true);
+        }
+        return;
+    }
 
     if (APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0))
     {
@@ -77,9 +91,50 @@ void AWordQuestGameMode::BeginPlay()
     }
 }
 
+void AWordQuestGameMode::StartAdventureFromMenu()
+{
+    if (!bMainMenuOpen) return;
+
+    if (UWordQuestGameInstance* GI = GetGameInstance<UWordQuestGameInstance>())
+    {
+        GI->StartNewAdventure();
+        GI->SaveStageCheckpoint();
+        GI->SetShowMainMenuOnStageOneLoad(false);
+    }
+
+    UGameplayStatics::OpenLevel(this, FName(TEXT("Stage01_WhisperingForest")));
+}
+
+void AWordQuestGameMode::RestartCurrentStage()
+{
+    if (!bGameOver) return;
+
+    if (UWordQuestGameInstance* GI = GetGameInstance<UWordQuestGameInstance>())
+    {
+        const int32 StageToRestart = GI->PlayerState.Stage;
+        if (!GI->RestoreStageCheckpoint())
+        {
+            GI->StartNewAdventure();
+        }
+        GI->SetShowMainMenuOnStageOneLoad(false);
+        UGameplayStatics::OpenLevel(this, GetBaseMapForStage(StageToRestart));
+    }
+}
+
+void AWordQuestGameMode::ReturnToMainMenu()
+{
+    if (UWordQuestGameInstance* GI = GetGameInstance<UWordQuestGameInstance>())
+    {
+        GI->StartNewAdventure();
+        GI->SetShowMainMenuOnStageOneLoad(true);
+    }
+
+    UGameplayStatics::OpenLevel(this, FName(TEXT("Stage01_WhisperingForest")));
+}
+
 void AWordQuestGameMode::StartEncounter(AWordQuestEnemy* Enemy)
 {
-    if (!Enemy || bBattleActive || bStageClear || bShopOpen) return;
+    if (!Enemy || bMainMenuOpen || bGameOver || bBattleActive || bStageClear || bShopOpen) return;
     if (Enemy->WaveNumber != CurrentWave) return;
 
     CurrentEnemy = Enemy;
@@ -148,7 +203,7 @@ void AWordQuestGameMode::PlayTone(float StartFrequency, float EndFrequency, floa
 
 bool AWordQuestGameMode::SubmitAnswer(int32 AnswerIndex)
 {
-    if (!bBattleActive || !CurrentEnemy) return false;
+    if (bMainMenuOpen || bGameOver || !bBattleActive || !CurrentEnemy) return false;
     UWordQuestGameInstance* GI = GetGameInstance<UWordQuestGameInstance>();
     if (!GI) return false;
 
@@ -182,7 +237,7 @@ bool AWordQuestGameMode::SubmitAnswer(int32 AnswerIndex)
             bBattleActive = false;
             AdvanceWave();
 
-            if (Player) Player->SetBattleLocked(bStageClear || bShopOpen);
+            if (Player) Player->SetBattleLocked(bStageClear || bShopOpen || bGameOver);
             OnBattleStateChanged();
             return true;
         }
@@ -209,6 +264,8 @@ bool AWordQuestGameMode::SubmitAnswer(int32 AnswerIndex)
         if (GI->IsGameOver())
         {
             bBattleActive = false;
+            bGameOver = true;
+            PlayTone(300.f, 90.f, 0.8f, 0.45f);
             if (Player) Player->SetBattleLocked(true);
             OnGameOver();
             OnBattleStateChanged();
@@ -239,7 +296,6 @@ void AWordQuestGameMode::OpenStageShop()
 {
     bShopOpen = true;
     if (UWordQuestGameInstance* GI = GetGameInstance<UWordQuestGameInstance>()) GI->ResetShopStock();
-
     if (AWordQuestCharacter* Player = Cast<AWordQuestCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0))) Player->SetBattleLocked(true);
 }
 
@@ -288,9 +344,13 @@ void AWordQuestGameMode::StartStageTwo()
 
     GI->PlayerState.Stage = 2;
     GI->PlayerState.Wave = 1;
+    GI->SaveStageCheckpoint();
+    GI->SetShowMainMenuOnStageOneLoad(false);
+
     bShopOpen = false;
     bBattleActive = false;
     bStageClear = false;
+    bGameOver = false;
     CurrentEnemy = nullptr;
 
     UGameplayStatics::OpenLevel(this, FName(TEXT("Stage02_SunnyMeadow")));
@@ -303,13 +363,14 @@ void AWordQuestGameMode::StartStageThree()
 
     GI->PlayerState.Stage = 3;
     GI->PlayerState.Wave = 1;
+    GI->SaveStageCheckpoint();
+    GI->SetShowMainMenuOnStageOneLoad(false);
+
     bShopOpen = false;
     bBattleActive = false;
     bStageClear = false;
+    bGameOver = false;
     CurrentEnemy = nullptr;
 
-    // Re-open the clean Stage 2 base map and let BeginPlay build Crystal Cave
-    // from the persistent Stage=3 state. This works immediately and does not
-    // require a Stage03 .umap binary to exist first.
     UGameplayStatics::OpenLevel(this, FName(TEXT("Stage02_SunnyMeadow")));
 }
