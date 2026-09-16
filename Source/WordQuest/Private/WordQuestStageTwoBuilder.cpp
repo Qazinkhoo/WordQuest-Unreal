@@ -1,7 +1,9 @@
 #include "WordQuestStageTwoBuilder.h"
 #include "WordQuestEnemy.h"
+#include "WordQuestCharacter.h"
 #include "Engine/StaticMeshActor.h"
 #include "Components/StaticMeshComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 AWordQuestStageTwoBuilder::AWordQuestStageTwoBuilder()
 {
@@ -44,13 +46,11 @@ void AWordQuestStageTwoBuilder::BeginPlay()
 
     const FVector Origin = GetActorLocation();
 
-    // Long continuous meadow floor beyond the Stage 1 area.
     for (int32 i = 0; i < 19; ++i)
     {
         SpawnBlock(Origin + FVector(200.f + i * 400.f, 0.f, -50.f), FVector(4.f, 6.f, 1.f));
     }
 
-    // Meadow markers and flowers arranged so they do not obstruct the character path.
     for (int32 i = 0; i < 18; ++i)
     {
         const float X = 300.f + i * 360.f;
@@ -74,5 +74,13 @@ void AWordQuestStageTwoBuilder::BeginPlay()
                 Enemy->SetActorLabel(FString::Printf(TEXT("Stage2_Enemy_Wave_%d"), Wave));
             }
         }
+    }
+
+    // Force the player to the true Stage 2 start after all Stage 2 actors are created.
+    // This overrides any incorrect transition position from the previous stage.
+    if (AWordQuestCharacter* Player = Cast<AWordQuestCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0)))
+    {
+        Player->SetActorLocation(Origin + FVector(100.f, 0.f, 120.f), false, nullptr, ETeleportType::TeleportPhysics);
+        Player->SetBattleLocked(false);
     }
 }
