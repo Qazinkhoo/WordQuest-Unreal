@@ -23,6 +23,7 @@ public:
     UPROPERTY(BlueprintReadOnly, Category="Word Quest") bool bShopOpen = false;
     UPROPERTY(BlueprintReadOnly, Category="Word Quest") bool bMainMenuOpen = false;
     UPROPERTY(BlueprintReadOnly, Category="Word Quest") bool bGameOver = false;
+    UPROPERTY(BlueprintReadOnly, Category="Word Quest") bool bQuestComplete = false;
     UPROPERTY(BlueprintReadOnly, Category="Word Quest") bool bAnswerFeedbackActive = false;
     UPROPERTY(BlueprintReadOnly, Category="Word Quest") int32 SelectedAnswerIndex = INDEX_NONE;
     UPROPERTY(BlueprintReadOnly, Category="Word Quest") bool bSelectedAnswerCorrect = false;
