@@ -18,14 +18,18 @@ AWordQuestSwordPickup::AWordQuestSwordPickup()
     static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh(TEXT("/Engine/BasicShapes/Cube.Cube"));
     static ConstructorHelpers::FObjectFinder<UMaterialInterface> BasicMaterial(TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial"));
 
-    auto SetupPiece = [this, &CubeMesh, &BasicMaterial](UStaticMeshComponent* Piece)
+    // CubeMesh and BasicMaterial are static local objects, so they must not be
+    // captured by reference in the lambda. They can be accessed directly.
+    auto SetupPiece = [this](UStaticMeshComponent* Piece)
     {
         Piece->SetupAttachment(Trigger);
         Piece->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
         if (CubeMesh.Succeeded())
         {
             Piece->SetStaticMesh(CubeMesh.Object);
         }
+
         if (BasicMaterial.Succeeded())
         {
             Piece->SetMaterial(0, BasicMaterial.Object);
