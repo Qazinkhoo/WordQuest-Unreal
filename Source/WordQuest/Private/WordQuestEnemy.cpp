@@ -78,7 +78,10 @@ void AWordQuestEnemy::ConfigureEnemy(int32 InWave, bool bInBoss)
     bBoss = bInBoss;
     MaxHP = bBoss ? 3 : 1;
     CurrentHP = MaxHP;
-    SetActorScale3D(bBoss ? FVector(1.5f) : FVector(1.f));
+
+    // Sprite size is controlled by the widget component, so keep the actor itself
+    // at a stable scale for consistent collision and encounter distance.
+    SetActorScale3D(FVector(1.f));
 
     RefreshEnemyVisual();
 }
@@ -87,14 +90,7 @@ void AWordQuestEnemy::RefreshEnemyVisual()
 {
     if (!Visual || !EnemyWidgetComponent) return;
 
-    if (bBoss || WaveNumber < 1 || WaveNumber > 4)
-    {
-        // Wave 5 remains the current boss visual until a separate boss image is chosen.
-        Visual->SetVisibility(true, true);
-        EnemyWidgetComponent->SetVisibility(false);
-        return;
-    }
-
+    // All normal monsters and all three bosses now use supplied sprite artwork.
     Visual->SetVisibility(false, true);
     EnemyWidgetComponent->SetVisibility(true);
 
@@ -103,9 +99,39 @@ void AWordQuestEnemy::RefreshEnemyVisual()
         EnemyWidget = Cast<UWordQuestEnemyWidget>(EnemyWidgetComponent->GetUserWidgetObject());
     }
 
+    int32 StageNumber = 1;
+    if (UWordQuestGameInstance* GI = GetGameInstance<UWordQuestGameInstance>())
+    {
+        StageNumber = FMath::Clamp(GI->PlayerState.Stage, 1, 3);
+    }
+
     if (EnemyWidget)
     {
-        EnemyWidget->SetMonsterWave(WaveNumber);
+        EnemyWidget->SetEnemyVisual(WaveNumber, StageNumber, bBoss);
+    }
+
+    if (bBoss)
+    {
+        switch (StageNumber)
+        {
+        case 1: // Ghast - floating cube boss
+            EnemyWidgetComponent->SetDrawSize(FVector2D(220.f, 252.f));
+            EnemyWidgetComponent->SetRelativeLocation(FVector(0.f, -2.f, -35.f));
+            break;
+
+        case 2: // Enderman - tall boss with particles
+            EnemyWidgetComponent->SetDrawSize(FVector2D(230.f, 255.f));
+            EnemyWidgetComponent->SetRelativeLocation(FVector(0.f, -2.f, -100.f));
+            break;
+
+        case 3: // Ender Dragon - wide final boss
+        default:
+            EnemyWidgetComponent->SetDrawSize(FVector2D(360.f, 220.f));
+            EnemyWidgetComponent->SetRelativeLocation(FVector(0.f, -2.f, -45.f));
+            break;
+        }
+
+        return;
     }
 
     // Keep each supplied monster at a natural proportion while giving all four
@@ -147,7 +173,7 @@ void AWordQuestEnemy::PlayHitPulse()
 {
     if (!GetWorld()) return;
 
-    const FVector BaseScale = bBoss ? FVector(1.5f) : FVector(1.f);
+    const FVector BaseScale = GetActorScale3D();
     SetActorScale3D(BaseScale * 1.12f);
 
     FTimerHandle ResetHandle;
