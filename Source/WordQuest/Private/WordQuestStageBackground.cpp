@@ -14,10 +14,14 @@ AWordQuestStageBackground::AWordQuestStageBackground()
     BackgroundWidgetComponent->SetupAttachment(Root);
     BackgroundWidgetComponent->SetWidgetClass(UWordQuestStageBackgroundWidget::StaticClass());
     BackgroundWidgetComponent->SetWidgetSpace(EWidgetSpace::World);
-    BackgroundWidgetComponent->SetDrawSize(FVector2D(1920.f, 1080.f));
+
+    // A wide canvas is filled with many correctly proportioned copies of the
+    // supplied stage image. This avoids the extreme horizontal stretching that
+    // happened when a single portrait image filled a 16:9 panel.
+    BackgroundWidgetComponent->SetDrawSize(FVector2D(7680.f, 1440.f));
     BackgroundWidgetComponent->SetPivot(FVector2D(0.5f, 0.5f));
     BackgroundWidgetComponent->SetRelativeRotation(FRotator(0.f, 90.f, 0.f));
-    BackgroundWidgetComponent->SetRelativeScale3D(FVector(4.4f, 4.4f, 4.4f));
+    BackgroundWidgetComponent->SetRelativeScale3D(FVector(1.5f, 1.5f, 1.5f));
     BackgroundWidgetComponent->SetTwoSided(true);
     BackgroundWidgetComponent->SetBlendMode(EWidgetBlendMode::Opaque);
     BackgroundWidgetComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -39,10 +43,10 @@ void AWordQuestStageBackground::ConfigureBackground(int32 InStageNumber, const F
 {
     StageNumber = FMath::Clamp(InStageNumber, 1, 3);
 
-    // The side camera sits on +Y and looks toward -Y, so place this giant image
-    // behind all gameplay actors. One 1920x1080 widget scaled to 4.4 spans the
-    // complete playable route while keeping the foreground blocks interactive.
-    SetActorLocation(StageOrigin + FVector(3400.f, -850.f, 1150.f));
+    // Keep the repeated backdrop behind gameplay and centred on the complete
+    // playable route. The wider panel now extends beyond both stage ends so the
+    // camera never exposes the default empty world beside the artwork.
+    SetActorLocation(StageOrigin + FVector(3400.f, -900.f, 650.f));
 
     RefreshBackground();
 }
