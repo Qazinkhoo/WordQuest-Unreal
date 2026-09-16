@@ -9,6 +9,7 @@
 #include "WordQuestHUD.h"
 #include "WordQuestPlayerController.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Sound/SoundWaveProcedural.h"
 #include "TimerManager.h"
 
@@ -38,6 +39,7 @@ void AWordQuestGameMode::BeginPlay()
     bMainMenuOpen = false;
     bAnswerFeedbackActive = false;
     SelectedAnswerIndex = INDEX_NONE;
+    MainMenuSelection = 0;
 
     UWordQuestGameInstance* GI = GetGameInstance<UWordQuestGameInstance>();
     if (!GI) return;
@@ -68,6 +70,7 @@ void AWordQuestGameMode::BeginPlay()
     if (CurrentStage == 1 && GI->ConsumeShowMainMenuOnStageOneLoad())
     {
         bMainMenuOpen = true;
+        MainMenuSelection = 0;
         if (AWordQuestCharacter* Player = Cast<AWordQuestCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0)))
         {
             Player->SetBattleLocked(true);
@@ -84,6 +87,33 @@ void AWordQuestGameMode::BeginPlay()
         else if (CurrentStage == 2) GetWorld()->SpawnActor<AWordQuestStageTwoBuilder>(BuilderLocation, FRotator::ZeroRotator);
         else GetWorld()->SpawnActor<AWordQuestStageOneBuilder>(BuilderLocation, FRotator::ZeroRotator);
     }
+}
+
+void AWordQuestGameMode::MoveMainMenuSelection(int32 Direction)
+{
+    if (!bMainMenuOpen || Direction == 0) return;
+    MainMenuSelection = (MainMenuSelection == 0) ? 1 : 0;
+    PlayTone(420.f, 520.f, 0.08f, 0.18f);
+}
+
+void AWordQuestGameMode::ActivateMainMenuSelection()
+{
+    if (!bMainMenuOpen) return;
+
+    if (MainMenuSelection == 0)
+    {
+        StartAdventureFromMenu();
+    }
+    else
+    {
+        ExitGame();
+    }
+}
+
+void AWordQuestGameMode::ExitGame()
+{
+    APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
+    UKismetSystemLibrary::QuitGame(this, PC, EQuitPreference::Quit, false);
 }
 
 void AWordQuestGameMode::StartAdventureFromMenu()
@@ -249,14 +279,12 @@ void AWordQuestGameMode::ResolveSelectedAnswer()
             return;
         }
 
-        // Boss survives: give a fresh question for the next hit.
         bAnswerFeedbackActive = false;
         SelectedAnswerIndex = INDEX_NONE;
         LoadDifferentQuestion();
         return;
     }
 
-    // Wrong answer: take the hit, but keep the SAME question on screen.
     PlayTone(360.f, 180.f, 0.22f, 0.38f);
     const bool bTookDamage = GI->ApplyEnemyHit();
 
@@ -287,7 +315,6 @@ void AWordQuestGameMode::ResolveSelectedAnswer()
         return;
     }
 
-    // Clear only the feedback state. CurrentQuestion is intentionally unchanged.
     bAnswerFeedbackActive = false;
     SelectedAnswerIndex = INDEX_NONE;
 }
@@ -298,8 +325,6 @@ void AWordQuestGameMode::AdvanceWave()
     {
         bStageClear = true;
 
-        // Stage 3 is the final stage. Defeating its boss completes the entire
-        // adventure immediately; there is no fourth stage and no final shop.
         if (CurrentStage >= 3)
         {
             bQuestComplete = true;
@@ -326,7 +351,6 @@ void AWordQuestGameMode::AdvanceWave()
 
 void AWordQuestGameMode::OpenStageShop()
 {
-    // Only stages 1 and 2 lead to a shop/next-stage transition.
     if (CurrentStage >= 3) return;
 
     bShopOpen = true;
@@ -357,8 +381,6 @@ void AWordQuestGameMode::LeaveStageShop()
     if (!bShopOpen) return;
     if (CurrentStage == 1) { StartStageTwo(); return; }
     if (CurrentStage == 2) { StartStageThree(); return; }
-
-    // There is intentionally no transition beyond stage 3.
     bShopOpen = false;
 }
 
