@@ -50,7 +50,6 @@ void AWordQuestStageThreeBuilder::BeginPlay()
         if (Background)
         {
             Background->ConfigureBackground(3, Origin);
-            Background->SetActorLabel(TEXT("Stage3_Background"));
         }
     }
 
@@ -83,7 +82,6 @@ void AWordQuestStageThreeBuilder::BeginPlay()
         if (Enemy)
         {
             Enemy->ConfigureEnemy(Wave, Wave == 5);
-            Enemy->SetActorLabel(FString::Printf(TEXT("Stage3_Enemy_Wave_%d"), Wave));
         }
     }
 
