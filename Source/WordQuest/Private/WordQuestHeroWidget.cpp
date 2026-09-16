@@ -40,7 +40,8 @@ void UWordQuestHeroWidget::RefreshBrush()
         ? FBox2f(FVector2f(0.297652f, 0.151013f), FVector2f(0.475138f, 0.863720f))
         : FBox2f(FVector2f(0.791436f, 0.151013f), FVector2f(0.968923f, 0.863720f));
 
-    Brush.SetUVRegion(TOptional<FBox2f>(UVRegion));
+    // UE 5.8 expects FBox2f directly, not TOptional<FBox2f>.
+    Brush.SetUVRegion(UVRegion);
     HeroImage->SetBrush(Brush);
     HeroImage->SetColorAndOpacity(FLinearColor::White);
 }
