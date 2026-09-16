@@ -13,6 +13,7 @@ class WORDQUEST_API AWordQuestEnemy : public AActor
     GENERATED_BODY()
 public:
     AWordQuestEnemy();
+    virtual void NotifyActorBeginOverlap(AActor* OtherActor) override;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Word Quest") bool bBoss = false;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Word Quest") int32 MaxHP = 1;
