@@ -60,13 +60,13 @@ AWordQuestCharacter::AWordQuestCharacter()
     LeftLeg = MakeBlock(TEXT("LeftLeg"), FVector(0.18f, 0.18f, 0.55f), FVector(0.f, -18.f, -68.f));
     RightLeg = MakeBlock(TEXT("RightLeg"), FVector(0.18f, 0.18f, 0.55f), FVector(0.f, 18.f, -68.f));
 
-    // One world-space widget contains all six body parts. The widget dimensions
-    // now exactly match the assembled reference canvas so the parts line up.
+    // Use the original coherent side-view hero. A 100 x 300 draw size matches
+    // the source character's tall 1:3 proportions and keeps the feet grounded.
     HeroWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HeroWidgetComponent"));
     HeroWidgetComponent->SetupAttachment(GetCapsuleComponent());
     HeroWidgetComponent->SetWidgetClass(UWordQuestHeroWidget::StaticClass());
     HeroWidgetComponent->SetWidgetSpace(EWidgetSpace::World);
-    HeroWidgetComponent->SetDrawSize(FVector2D(120.f, 212.f));
+    HeroWidgetComponent->SetDrawSize(FVector2D(100.f, 300.f));
     HeroWidgetComponent->SetPivot(FVector2D(0.5f, 1.f));
     HeroWidgetComponent->SetRelativeLocation(FVector(0.f, -2.f, -94.f));
     HeroWidgetComponent->SetRelativeRotation(FRotator(0.f, 90.f, 0.f));
