@@ -173,7 +173,6 @@ void AWordQuestHUD::DrawHUD()
         }
 
         DrawMenuVoxelHero(ScreenW * 0.20f, ScreenH * 0.34f, 1.15f);
-
         Canvas->SetDrawColor(FColor::Yellow);
         Canvas->DrawText(Font, TEXT("WORD QUEST"), ScreenW * 0.36f, ScreenH * 0.22f, 3.8f, 3.8f);
         Canvas->SetDrawColor(FColor::White);
@@ -207,11 +206,13 @@ void AWordQuestHUD::DrawHUD()
     if (GM->bShopOpen && !bShopWasOpen) PlayFeedbackTone(520.f, 1100.f, 0.60f, 0.48f);
     bShopWasOpen = GM->bShopOpen;
 
-    DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.62f), 20.f, 20.f, 720.f, 118.f);
+    DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.68f), 20.f, 20.f, 760.f, 150.f);
     Canvas->SetDrawColor(FColor::White);
     Canvas->DrawText(Font, FString::Printf(TEXT("STAGE %d - %s    WAVE %d/5"), GM->CurrentStage, *StageName, GM->CurrentWave), 35.f, 28.f, 1.10f, 1.10f);
     Canvas->DrawText(Font, FString::Printf(TEXT("HP: %d/%d    COINS: %d    DAMAGE: %d"), GI->PlayerState.CurrentHP, GI->PlayerState.MaxHP, GI->PlayerState.Coins, GI->PlayerState.Damage), 35.f, 67.f, 1.08f, 1.08f);
     Canvas->DrawText(Font, GI->PlayerState.bHasSword ? TEXT("SWORD: COLLECTED") : TEXT("SWORD: FIND IT AHEAD"), 35.f, 101.f, 1.00f, 1.00f);
+    Canvas->SetDrawColor(GI->PlayerState.StarProtectionHits > 0 ? FColor::Cyan : FColor::Silver);
+    Canvas->DrawText(Font, FString::Printf(TEXT("STAR BLOCKS: %d"), GI->PlayerState.StarProtectionHits), 35.f, 128.f, 1.00f, 1.00f);
 
     if (GM->bShopOpen)
     {
