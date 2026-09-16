@@ -41,6 +41,14 @@ void AWordQuestStageOneBuilder::BeginPlay()
 
     const FVector Origin = GetActorLocation();
 
+    // Build a continuous collision floor for the whole stage instead of relying
+    // on the small Basic-level editor floor. Each cube is 400 units long, and
+    // together they cover the route past the Wave 5 boss.
+    for (int32 i = 0; i < 19; ++i)
+    {
+        SpawnBlock(Origin + FVector(200.f + i * 400.f, 0.f, -50.f), FVector(4.f, 6.f, 1.f));
+    }
+
     const float TreeX[] = { 350.f, 900.f, 1500.f, 2150.f, 2850.f, 3550.f, 4300.f, 5050.f, 5900.f };
     for (int32 i = 0; i < 9; ++i)
     {
