@@ -25,23 +25,17 @@ protected:
 
 private:
     void RefreshBrushes();
-    void ApplyBandBrush(UImage* Image, const FBox2f& UVRegion, const FVector2D& ImageSize);
+    void ApplyPartBrush(UImage* Image, const FBox2f& UVRegion, const FVector2D& ImageSize);
     void ResetPartTransforms();
 
-    UPROPERTY()
-    TObjectPtr<UCanvasPanel> RootPanel;
-
-    UPROPERTY()
-    TObjectPtr<UImage> HeadImage;
-
-    UPROPERTY()
-    TObjectPtr<UImage> TorsoImage;
-
-    UPROPERTY()
-    TObjectPtr<UImage> LegsImage;
-
-    UPROPERTY()
-    TObjectPtr<UTexture2D> HeroTexture;
+    UPROPERTY() TObjectPtr<UCanvasPanel> RootPanel;
+    UPROPERTY() TObjectPtr<UImage> HeadImage;
+    UPROPERTY() TObjectPtr<UImage> TorsoImage;
+    UPROPERTY() TObjectPtr<UImage> LeftArmImage;
+    UPROPERTY() TObjectPtr<UImage> RightArmImage;
+    UPROPERTY() TObjectPtr<UImage> LeftLegImage;
+    UPROPERTY() TObjectPtr<UImage> RightLegImage;
+    UPROPERTY() TObjectPtr<UTexture2D> AtlasTexture;
 
     bool bFacingLeft = false;
     bool bMoving = false;
