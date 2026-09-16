@@ -18,6 +18,11 @@ public:
     UFUNCTION(BlueprintCallable, Category="Word Quest") bool ApplyEnemyHit();
     UFUNCTION(BlueprintCallable, Category="Word Quest") void RewardNormalEnemy();
     UFUNCTION(BlueprintCallable, Category="Word Quest") void RewardBoss();
+    UFUNCTION(BlueprintCallable, Category="Word Quest") void SaveStageCheckpoint();
+    UFUNCTION(BlueprintCallable, Category="Word Quest") bool RestoreStageCheckpoint();
+    UFUNCTION(BlueprintCallable, Category="Word Quest") void SetShowMainMenuOnStageOneLoad(bool bShow) { bShowMainMenuOnStageOneLoad = bShow; }
+    UFUNCTION(BlueprintCallable, Category="Word Quest") bool ConsumeShowMainMenuOnStageOneLoad();
+
     UFUNCTION(BlueprintCallable, Category="Word Quest|Shop") bool BuyApple();
     UFUNCTION(BlueprintCallable, Category="Word Quest|Shop") bool BuyStar();
     UFUNCTION(BlueprintCallable, Category="Word Quest|Shop") bool BuyArmour();
@@ -34,6 +39,10 @@ private:
     bool bAppleBoughtThisVisit = false;
     bool bStarBoughtThisVisit = false;
     bool bArmourBoughtThisVisit = false;
+
+    FWordQuestPlayerState StageCheckpoint;
+    bool bHasStageCheckpoint = false;
+    bool bShowMainMenuOnStageOneLoad = true;
 
 public:
     UFUNCTION(BlueprintCallable, Category="Word Quest|Shop") void ResetShopStock();
