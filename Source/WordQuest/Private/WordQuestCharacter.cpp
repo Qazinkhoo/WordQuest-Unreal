@@ -4,6 +4,8 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/InputComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "UObject/ConstructorHelpers.h"
 
 AWordQuestCharacter::AWordQuestCharacter()
 {
@@ -27,6 +29,31 @@ AWordQuestCharacter::AWordQuestCharacter()
     SideCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("SideCamera"));
     SideCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
     SideCamera->bUsePawnControlRotation = false;
+
+    static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh(TEXT("/Engine/BasicShapes/Cube.Cube"));
+
+    auto MakeBlock = [this, &CubeMesh](const TCHAR* Name, const FVector& Scale, const FVector& Location)
+    {
+        UStaticMeshComponent* Part = CreateDefaultSubobject<UStaticMeshComponent>(Name);
+        Part->SetupAttachment(GetCapsuleComponent());
+        Part->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+        if (CubeMesh.Succeeded()) Part->SetStaticMesh(CubeMesh.Object);
+        Part->SetRelativeScale3D(Scale);
+        Part->SetRelativeLocation(Location);
+        return Part;
+    };
+
+    BlockBody = MakeBlock(TEXT("BlockBody"), FVector(0.45f, 0.28f, 0.62f), FVector(0.f, 0.f, 15.f));
+    BlockHead = MakeBlock(TEXT("BlockHead"), FVector(0.36f, 0.32f, 0.36f), FVector(0.f, 0.f, 86.f));
+    LeftArm = MakeBlock(TEXT("LeftArm"), FVector(0.16f, 0.16f, 0.55f), FVector(0.f, -43.f, 20.f));
+    RightArm = MakeBlock(TEXT("RightArm"), FVector(0.16f, 0.16f, 0.55f), FVector(0.f, 43.f, 20.f));
+    LeftLeg = MakeBlock(TEXT("LeftLeg"), FVector(0.18f, 0.18f, 0.55f), FVector(0.f, -18.f, -68.f));
+    RightLeg = MakeBlock(TEXT("RightLeg"), FVector(0.18f, 0.18f, 0.55f), FVector(0.f, 18.f, -68.f));
+}
+
+void AWordQuestCharacter::BeginPlay()
+{
+    Super::BeginPlay();
 }
 
 void AWordQuestCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -39,10 +66,20 @@ void AWordQuestCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 
 void AWordQuestCharacter::MoveRight(float Value)
 {
+    if (bBattleLocked) return;
     if (!FMath::IsNearlyZero(Value)) AddMovementInput(FVector(1.f, 0.f, 0.f), Value);
 }
 
 void AWordQuestCharacter::CollectSword()
 {
     if (UWordQuestGameInstance* GI = GetGameInstance<UWordQuestGameInstance>()) GI->CollectSword();
+}
+
+void AWordQuestCharacter::SetBattleLocked(bool bLocked)
+{
+    bBattleLocked = bLocked;
+    if (bBattleLocked)
+    {
+        GetCharacterMovement()->StopMovementImmediately();
+    }
 }
