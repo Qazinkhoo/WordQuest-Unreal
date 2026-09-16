@@ -11,34 +11,88 @@ void UWordQuestQuestionSubsystem::Initialize(FSubsystemCollectionBase& Collectio
 void UWordQuestQuestionSubsystem::ResetAdventureQuestions()
 {
     RemainingQuestionIndices.Empty();
-    for (int32 i = 0; i < QuestionBank.Num(); ++i) RemainingQuestionIndices.Add(i);
+    for (int32 i = 0; i < QuestionBank.Num(); ++i)
+    {
+        RemainingQuestionIndices.Add(i);
+    }
     Algo::RandomShuffle(RemainingQuestionIndices);
+}
+
+void UWordQuestQuestionSubsystem::ShuffleAnswers(FWordQuestQuestion& Question) const
+{
+    for (int32 i = Question.Answers.Num() - 1; i > 0; --i)
+    {
+        const int32 j = FMath::RandRange(0, i);
+        if (i == j) continue;
+
+        Question.Answers.Swap(i, j);
+        if (Question.CorrectAnswerIndex == i) Question.CorrectAnswerIndex = j;
+        else if (Question.CorrectAnswerIndex == j) Question.CorrectAnswerIndex = i;
+    }
+}
+
+int32 UWordQuestQuestionSubsystem::GetDifficultyScore(const FWordQuestQuestion& Question) const
+{
+    const FString Category = Question.Category.ToString();
+    if (Category == TEXT("Vocabulary") || Category == TEXT("Spelling") || Category == TEXT("Prepositions")) return 1;
+    if (Category == TEXT("Grammar") || Category == TEXT("Word Classes")) return 2;
+    if (Category == TEXT("Tenses") || Category == TEXT("Future Tense") || Category == TEXT("Comparatives") || Category == TEXT("Adverbs")) return 3;
+    if (Category == TEXT("Conjunctions")) return 4;
+    if (Category == TEXT("Punctuation") || Category == TEXT("Sentence Types")) return 5;
+    return 3;
 }
 
 bool UWordQuestQuestionSubsystem::GetNextQuestion(FWordQuestQuestion& OutQuestion)
 {
     if (RemainingQuestionIndices.IsEmpty()) return false;
 
-    const int32 Index = RemainingQuestionIndices.Pop();
-    OutQuestion = QuestionBank[Index];
+    const int32 Position = FMath::RandRange(0, RemainingQuestionIndices.Num() - 1);
+    const int32 QuestionIndex = RemainingQuestionIndices[Position];
+    RemainingQuestionIndices.RemoveAtSwap(Position);
 
-    // Shuffle answer positions while preserving the correct-answer index.
-    for (int32 i = OutQuestion.Answers.Num() - 1; i > 0; --i)
+    OutQuestion = QuestionBank[QuestionIndex];
+    ShuffleAnswers(OutQuestion);
+    return true;
+}
+
+bool UWordQuestQuestionSubsystem::GetNextQuestionForWave(int32 Wave, FWordQuestQuestion& OutQuestion)
+{
+    if (RemainingQuestionIndices.IsEmpty()) return false;
+
+    const int32 TargetDifficulty = FMath::Clamp(Wave, 1, 5);
+    TArray<int32> CandidatePositions;
+
+    for (int32 Distance = 0; Distance <= 4; ++Distance)
     {
-        const int32 j = FMath::RandRange(0, i);
-        if (i == j) continue;
+        CandidatePositions.Reset();
+        for (int32 Position = 0; Position < RemainingQuestionIndices.Num(); ++Position)
+        {
+            const int32 QuestionIndex = RemainingQuestionIndices[Position];
+            if (!QuestionBank.IsValidIndex(QuestionIndex)) continue;
 
-        OutQuestion.Answers.Swap(i, j);
-        if (OutQuestion.CorrectAnswerIndex == i) OutQuestion.CorrectAnswerIndex = j;
-        else if (OutQuestion.CorrectAnswerIndex == j) OutQuestion.CorrectAnswerIndex = i;
+            if (FMath::Abs(GetDifficultyScore(QuestionBank[QuestionIndex]) - TargetDifficulty) == Distance)
+            {
+                CandidatePositions.Add(Position);
+            }
+        }
+        if (!CandidatePositions.IsEmpty()) break;
     }
 
+    if (CandidatePositions.IsEmpty()) return GetNextQuestion(OutQuestion);
+
+    const int32 Position = CandidatePositions[FMath::RandRange(0, CandidatePositions.Num() - 1)];
+    const int32 QuestionIndex = RemainingQuestionIndices[Position];
+    RemainingQuestionIndices.RemoveAtSwap(Position);
+
+    OutQuestion = QuestionBank[QuestionIndex];
+    ShuffleAnswers(OutQuestion);
     return true;
 }
 
 void UWordQuestQuestionSubsystem::BuildYear4QuestionBank()
 {
     QuestionBank.Empty();
+
     auto Add = [this](const TCHAR* Id, const TCHAR* Prompt, std::initializer_list<const TCHAR*> Options, int32 Correct, const TCHAR* Category)
     {
         FWordQuestQuestion Q;
@@ -47,6 +101,17 @@ void UWordQuestQuestionSubsystem::BuildYear4QuestionBank()
         Q.CorrectAnswerIndex = Correct;
         Q.Category = Category;
         for (const TCHAR* Option : Options) Q.Answers.Add(Option);
+        QuestionBank.Add(Q);
+    };
+
+    auto AddDynamic = [this](const FString& Id, const FString& Prompt, const TArray<FString>& Options, int32 Correct, const FString& Category)
+    {
+        FWordQuestQuestion Q;
+        Q.Id = FName(*Id);
+        Q.Prompt = Prompt;
+        Q.Answers = Options;
+        Q.CorrectAnswerIndex = Correct;
+        Q.Category = Category;
         QuestionBank.Add(Q);
     };
 
@@ -70,34 +135,108 @@ void UWordQuestQuestionSubsystem::BuildYear4QuestionBank()
     Add(TEXT("Y4_018"), TEXT("Tomorrow, I ___ visit my grandmother."), {TEXT("will"), TEXT("did"), TEXT("was"), TEXT("has")}, 0, TEXT("Future Tense"));
     Add(TEXT("Y4_019"), TEXT("Choose the correct plural of 'child'."), {TEXT("childs"), TEXT("childes"), TEXT("children"), TEXT("childrens")}, 2, TEXT("Grammar"));
     Add(TEXT("Y4_020"), TEXT("Which sentence is a question?"), {TEXT("Please close the door."), TEXT("The door is closed."), TEXT("Did you close the door?"), TEXT("Close the door!")}, 2, TEXT("Sentence Types"));
-    Add(TEXT("Y4_021"), TEXT("Mira ___ her teeth before bed every night."), {TEXT("brush"), TEXT("brushes"), TEXT("brushed"), TEXT("brushing")}, 1, TEXT("Grammar"));
-    Add(TEXT("Y4_022"), TEXT("We ___ at the museum last Saturday."), {TEXT("are"), TEXT("were"), TEXT("is"), TEXT("be")}, 1, TEXT("Tenses"));
-    Add(TEXT("Y4_023"), TEXT("The ball rolled ___ the chair."), {TEXT("behind"), TEXT("because"), TEXT("carefully"), TEXT("tomorrow")}, 0, TEXT("Prepositions"));
-    Add(TEXT("Y4_024"), TEXT("Which word means the opposite of 'empty'?"), {TEXT("full"), TEXT("quiet"), TEXT("weak"), TEXT("thin")}, 0, TEXT("Vocabulary"));
-    Add(TEXT("Y4_025"), TEXT("Choose the correct spelling."), {TEXT("freind"), TEXT("friend"), TEXT("frend"), TEXT("friand")}, 1, TEXT("Spelling"));
-    Add(TEXT("Y4_026"), TEXT("This box is ___ than that one."), {TEXT("heavy"), TEXT("heavier"), TEXT("heaviest"), TEXT("more heavy")}, 1, TEXT("Comparatives"));
-    Add(TEXT("Y4_027"), TEXT("Nina was tired, ___ she finished her homework."), {TEXT("but"), TEXT("so"), TEXT("because"), TEXT("or")}, 0, TEXT("Conjunctions"));
-    Add(TEXT("Y4_028"), TEXT("Which sentence uses a capital letter correctly?"), {TEXT("we live in Malaysia."), TEXT("We live in malaysia."), TEXT("We live in Malaysia."), TEXT("we live in malaysia.")}, 2, TEXT("Punctuation"));
-    Add(TEXT("Y4_029"), TEXT("The boys ___ playing badminton now."), {TEXT("is"), TEXT("are"), TEXT("was"), TEXT("has")}, 1, TEXT("Grammar"));
-    Add(TEXT("Y4_030"), TEXT("Which word is an adverb?"), {TEXT("slowly"), TEXT("slow"), TEXT("runner"), TEXT("road")}, 0, TEXT("Word Classes"));
-    Add(TEXT("Y4_031"), TEXT("She ___ a letter yesterday."), {TEXT("write"), TEXT("writes"), TEXT("wrote"), TEXT("writing")}, 2, TEXT("Tenses"));
-    Add(TEXT("Y4_032"), TEXT("A doctor usually works in a ___."), {TEXT("hospital"), TEXT("library"), TEXT("bakery"), TEXT("stadium")}, 0, TEXT("Vocabulary"));
-    Add(TEXT("Y4_033"), TEXT("Which word is a noun?"), {TEXT("carefully"), TEXT("yellow"), TEXT("teacher"), TEXT("jumped")}, 2, TEXT("Word Classes"));
-    Add(TEXT("Y4_034"), TEXT("There ___ an apple in the bag."), {TEXT("are"), TEXT("is"), TEXT("were"), TEXT("have")}, 1, TEXT("Grammar"));
-    Add(TEXT("Y4_035"), TEXT("I stayed indoors ___ it was raining."), {TEXT("because"), TEXT("but"), TEXT("or"), TEXT("so that")}, 0, TEXT("Conjunctions"));
-    Add(TEXT("Y4_036"), TEXT("Which word means almost the same as 'small'?"), {TEXT("tiny"), TEXT("huge"), TEXT("noisy"), TEXT("fast")}, 0, TEXT("Vocabulary"));
-    Add(TEXT("Y4_037"), TEXT("The baby slept ___."), {TEXT("peaceful"), TEXT("peacefully"), TEXT("peace"), TEXT("more peaceful")}, 1, TEXT("Adverbs"));
-    Add(TEXT("Y4_038"), TEXT("Next week, we ___ visit the science centre."), {TEXT("will"), TEXT("were"), TEXT("did"), TEXT("has")}, 0, TEXT("Future Tense"));
-    Add(TEXT("Y4_039"), TEXT("Choose the correct plural of 'tooth'."), {TEXT("tooths"), TEXT("teeth"), TEXT("toothes"), TEXT("teeths")}, 1, TEXT("Grammar"));
-    Add(TEXT("Y4_040"), TEXT("Which sentence is an instruction?"), {TEXT("Please open your book."), TEXT("My book is blue."), TEXT("Where is my book?"), TEXT("What a lovely book!")}, 0, TEXT("Sentence Types"));
-    Add(TEXT("Y4_041"), TEXT("Farah ___ breakfast at 7 o'clock every day."), {TEXT("eat"), TEXT("eats"), TEXT("ate"), TEXT("eating")}, 1, TEXT("Grammar"));
-    Add(TEXT("Y4_042"), TEXT("Last night, the baby ___ for eight hours."), {TEXT("sleep"), TEXT("sleeps"), TEXT("slept"), TEXT("sleeping")}, 2, TEXT("Tenses"));
-    Add(TEXT("Y4_043"), TEXT("The picture is hanging ___ the wall."), {TEXT("on"), TEXT("during"), TEXT("carefully"), TEXT("because")}, 0, TEXT("Prepositions"));
-    Add(TEXT("Y4_044"), TEXT("Which word means the opposite of 'strong'?"), {TEXT("weak"), TEXT("brave"), TEXT("hard"), TEXT("wide")}, 0, TEXT("Vocabulary"));
-    Add(TEXT("Y4_045"), TEXT("Choose the correct spelling."), {TEXT("beautiful"), TEXT("beautifull"), TEXT("butiful"), TEXT("beutiful")}, 0, TEXT("Spelling"));
-    Add(TEXT("Y4_046"), TEXT("A cheetah is ___ than a tortoise."), {TEXT("fast"), TEXT("faster"), TEXT("fastest"), TEXT("more fast")}, 1, TEXT("Comparatives"));
-    Add(TEXT("Y4_047"), TEXT("You can have tea ___ juice."), {TEXT("or"), TEXT("because"), TEXT("so"), TEXT("although")}, 0, TEXT("Conjunctions"));
-    Add(TEXT("Y4_048"), TEXT("Which sentence ends with the correct punctuation?"), {TEXT("What a surprise?"), TEXT("What a surprise!"), TEXT("What a surprise,"), TEXT("What a surprise")}, 1, TEXT("Punctuation"));
-    Add(TEXT("Y4_049"), TEXT("My sister ___ a new bicycle."), {TEXT("have"), TEXT("has"), TEXT("having"), TEXT("had been")}, 1, TEXT("Grammar"));
-    Add(TEXT("Y4_050"), TEXT("Which word is an adjective?"), {TEXT("bright"), TEXT("brightly"), TEXT("shine"), TEXT("lamp")}, 0, TEXT("Word Classes"));
+
+    const TCHAR* OppositeWords[][2] = {
+        {TEXT("hot"), TEXT("cold")}, {TEXT("big"), TEXT("small")}, {TEXT("fast"), TEXT("slow")}, {TEXT("old"), TEXT("young")},
+        {TEXT("clean"), TEXT("dirty")}, {TEXT("happy"), TEXT("sad")}, {TEXT("light"), TEXT("dark")}, {TEXT("open"), TEXT("closed")},
+        {TEXT("early"), TEXT("late")}, {TEXT("soft"), TEXT("hard")}, {TEXT("high"), TEXT("low")}, {TEXT("wet"), TEXT("dry")},
+        {TEXT("inside"), TEXT("outside")}, {TEXT("near"), TEXT("far")}, {TEXT("full"), TEXT("empty")}, {TEXT("strong"), TEXT("weak")},
+        {TEXT("thick"), TEXT("thin")}, {TEXT("noisy"), TEXT("quiet")}, {TEXT("safe"), TEXT("dangerous")}, {TEXT("kind"), TEXT("unkind")}
+    };
+
+    for (int32 i = 0; i < 20; ++i)
+    {
+        AddDynamic(FString::Printf(TEXT("EASY_OPP_%02d"), i),
+            FString::Printf(TEXT("Which word means the opposite of '%s'?"), OppositeWords[i][0]),
+            {OppositeWords[i][1], OppositeWords[(i + 3) % 20][1], OppositeWords[(i + 7) % 20][1], OppositeWords[(i + 11) % 20][1]},
+            0, TEXT("Vocabulary"));
+    }
+
+    const TCHAR* Subjects[] = {TEXT("Aina"), TEXT("Ravi"), TEXT("Mei Lin"), TEXT("Daniel"), TEXT("Sara"), TEXT("Amir"), TEXT("Hana"), TEXT("Kumar")};
+    struct FVerbSet { const TCHAR* Base; const TCHAR* Third; const TCHAR* Past; const TCHAR* Ing; const TCHAR* Tail; };
+    const FVerbSet Verbs[] = {
+        {TEXT("walk"), TEXT("walks"), TEXT("walked"), TEXT("walking"), TEXT("to school every morning")},
+        {TEXT("eat"), TEXT("eats"), TEXT("ate"), TEXT("eating"), TEXT("breakfast at seven o'clock")},
+        {TEXT("play"), TEXT("plays"), TEXT("played"), TEXT("playing"), TEXT("badminton after school")},
+        {TEXT("drink"), TEXT("drinks"), TEXT("drank"), TEXT("drinking"), TEXT("milk in the morning")},
+        {TEXT("wash"), TEXT("washes"), TEXT("washed"), TEXT("washing"), TEXT("the dishes after dinner")},
+        {TEXT("carry"), TEXT("carries"), TEXT("carried"), TEXT("carrying"), TEXT("a bag to school")},
+        {TEXT("watch"), TEXT("watches"), TEXT("watched"), TEXT("watching"), TEXT("television in the evening")},
+        {TEXT("visit"), TEXT("visits"), TEXT("visited"), TEXT("visiting"), TEXT("the library every Saturday")}
+    };
+
+    for (int32 s = 0; s < 8; ++s)
+    {
+        for (int32 v = 0; v < 8; ++v)
+        {
+            AddDynamic(FString::Printf(TEXT("GRAMMAR_PRESENT_%02d_%02d"), s, v),
+                FString::Printf(TEXT("%s ___ %s."), Subjects[s], Verbs[v].Tail),
+                {Verbs[v].Base, Verbs[v].Third, Verbs[v].Past, Verbs[v].Ing}, 1, TEXT("Grammar"));
+
+            AddDynamic(FString::Printf(TEXT("TENSE_PAST_%02d_%02d"), s, v),
+                FString::Printf(TEXT("Yesterday, %s ___ %s."), Subjects[s], Verbs[v].Tail),
+                {Verbs[v].Base, Verbs[v].Third, Verbs[v].Past, Verbs[v].Ing}, 2, TEXT("Tenses"));
+        }
+    }
+
+    struct FConjunctionItem { const TCHAR* Prompt; const TCHAR* Correct; const TCHAR* A; const TCHAR* B; const TCHAR* C; };
+    const FConjunctionItem Conjunctions[] = {
+        {TEXT("I was thirsty, ___ I drank some water."), TEXT("so"), TEXT("but"), TEXT("because"), TEXT("or")},
+        {TEXT("Mira was tired, ___ she finished her homework."), TEXT("but"), TEXT("so"), TEXT("because"), TEXT("or")},
+        {TEXT("We stayed inside ___ it was raining."), TEXT("because"), TEXT("but"), TEXT("or"), TEXT("so")},
+        {TEXT("Would you like rice ___ noodles?"), TEXT("or"), TEXT("because"), TEXT("so"), TEXT("but")},
+        {TEXT("The bag is small ___ heavy."), TEXT("but"), TEXT("so"), TEXT("because"), TEXT("or")},
+        {TEXT("He practised every day, ___ he improved."), TEXT("so"), TEXT("but"), TEXT("or"), TEXT("because")},
+        {TEXT("I wore a jacket ___ the weather was cold."), TEXT("because"), TEXT("so"), TEXT("but"), TEXT("or")},
+        {TEXT("You may read a book ___ draw a picture."), TEXT("or"), TEXT("because"), TEXT("so"), TEXT("but")},
+        {TEXT("Sara is young ___ very responsible."), TEXT("but"), TEXT("because"), TEXT("or"), TEXT("so")},
+        {TEXT("The road was flooded, ___ we took another route."), TEXT("so"), TEXT("but"), TEXT("because"), TEXT("or")},
+        {TEXT("I closed the window ___ the rain was coming in."), TEXT("because"), TEXT("but"), TEXT("or"), TEXT("so")},
+        {TEXT("We can walk ___ take the bus."), TEXT("or"), TEXT("so"), TEXT("because"), TEXT("but")},
+        {TEXT("The test was difficult, ___ I tried my best."), TEXT("but"), TEXT("because"), TEXT("so"), TEXT("or")},
+        {TEXT("Ravi forgot his umbrella, ___ he got wet."), TEXT("so"), TEXT("but"), TEXT("or"), TEXT("because")},
+        {TEXT("The baby cried ___ it was hungry."), TEXT("because"), TEXT("but"), TEXT("so"), TEXT("or")},
+        {TEXT("Would you like an apple ___ a banana?"), TEXT("or"), TEXT("because"), TEXT("but"), TEXT("so")},
+        {TEXT("The room is old ___ clean."), TEXT("but"), TEXT("because"), TEXT("so"), TEXT("or")},
+        {TEXT("She saved her money, ___ she could buy the book."), TEXT("so"), TEXT("but"), TEXT("or"), TEXT("because")},
+        {TEXT("We were quiet ___ the baby was sleeping."), TEXT("because"), TEXT("so"), TEXT("or"), TEXT("but")},
+        {TEXT("You can stay here ___ come with us."), TEXT("or"), TEXT("so"), TEXT("because"), TEXT("but")}
+    };
+
+    for (int32 i = 0; i < 20; ++i)
+    {
+        AddDynamic(FString::Printf(TEXT("CONJ_%02d"), i), Conjunctions[i].Prompt,
+            {Conjunctions[i].Correct, Conjunctions[i].A, Conjunctions[i].B, Conjunctions[i].C}, 0, TEXT("Conjunctions"));
+    }
+
+    const TCHAR* InstructionSentences[] = {
+        TEXT("Please open the window."), TEXT("Turn to page ten."), TEXT("Wash your hands before eating."), TEXT("Stand in a straight line."),
+        TEXT("Write your name at the top."), TEXT("Put the book on the table."), TEXT("Listen carefully to the teacher."), TEXT("Close the door quietly."),
+        TEXT("Bring your pencil tomorrow."), TEXT("Colour the picture neatly."), TEXT("Read the passage twice."), TEXT("Circle the correct answer."),
+        TEXT("Keep your classroom clean."), TEXT("Wait for your turn."), TEXT("Raise your hand before speaking."), TEXT("Pack your school bag."),
+        TEXT("Drink plenty of water."), TEXT("Walk slowly on the stairs."), TEXT("Check your work carefully."), TEXT("Share the crayons with your friend.")
+    };
+
+    for (int32 i = 0; i < 20; ++i)
+    {
+        AddDynamic(FString::Printf(TEXT("TYPE_%02d"), i),
+            FString::Printf(TEXT("What type of sentence is this?  %s"), InstructionSentences[i]),
+            {TEXT("instruction"), TEXT("question"), TEXT("exclamation"), TEXT("statement")}, 0, TEXT("Sentence Types"));
+    }
+
+    const TCHAR* PunctuationPrompts[] = {
+        TEXT("Where is my pencil"), TEXT("What a beautiful rainbow"), TEXT("Please sit down"), TEXT("Did you finish your homework"),
+        TEXT("That was amazing"), TEXT("The library closes at five"), TEXT("Why are you laughing"), TEXT("Watch out"),
+        TEXT("My brother likes football"), TEXT("Can I borrow your ruler"), TEXT("What a huge elephant"), TEXT("We are visiting Ipoh tomorrow"),
+        TEXT("Who is at the door"), TEXT("How exciting"), TEXT("The pupils are reading quietly"), TEXT("When does the bus arrive"),
+        TEXT("Be careful"), TEXT("The cat is sleeping on the sofa"), TEXT("Which book do you want"), TEXT("What a wonderful day")
+    };
+    const TCHAR* CorrectMarks[] = {TEXT("?"),TEXT("!"),TEXT("."),TEXT("?"),TEXT("!"),TEXT("."),TEXT("?"),TEXT("!"),TEXT("."),TEXT("?"),TEXT("!"),TEXT("."),TEXT("?"),TEXT("!"),TEXT("."),TEXT("?"),TEXT("!"),TEXT("."),TEXT("?"),TEXT("!")};
+
+    for (int32 i = 0; i < 20; ++i)
+    {
+        AddDynamic(FString::Printf(TEXT("PUNC_%02d"), i),
+            FString::Printf(TEXT("Choose the correct punctuation: %s___"), PunctuationPrompts[i]),
+            {CorrectMarks[i], TEXT("."), TEXT("?"), TEXT("!")}, 0, TEXT("Punctuation"));
+    }
 }
