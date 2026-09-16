@@ -6,6 +6,7 @@
 
 class USceneComponent;
 class UWidgetComponent;
+class UBoxComponent;
 class UWordQuestStageBackgroundWidget;
 
 UCLASS()
@@ -27,6 +28,14 @@ private:
 
     UPROPERTY(VisibleAnywhere)
     TObjectPtr<UWidgetComponent> BackgroundWidgetComponent;
+
+    // Invisible blockers cap the playable route so the player cannot wander
+    // into endless empty world space beyond the designed stage.
+    UPROPERTY(VisibleAnywhere)
+    TObjectPtr<UBoxComponent> LeftBoundary;
+
+    UPROPERTY(VisibleAnywhere)
+    TObjectPtr<UBoxComponent> RightBoundary;
 
     UPROPERTY()
     TObjectPtr<UWordQuestStageBackgroundWidget> BackgroundWidget;
