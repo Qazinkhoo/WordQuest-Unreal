@@ -33,7 +33,7 @@ AWordQuestCharacter::AWordQuestCharacter()
 
     static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh(TEXT("/Engine/BasicShapes/Cube.Cube"));
 
-    auto MakeBlock = [this, &CubeMesh](const TCHAR* Name, const FVector& Scale, const FVector& Location)
+    auto MakeBlock = [this](const TCHAR* Name, const FVector& Scale, const FVector& Location)
     {
         UStaticMeshComponent* Part = CreateDefaultSubobject<UStaticMeshComponent>(Name);
         Part->SetupAttachment(GetCapsuleComponent());
