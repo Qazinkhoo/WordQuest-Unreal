@@ -1,5 +1,6 @@
 #include "WordQuestGameInstance.h"
 #include "WordQuestCharacter.h"
+#include "WordQuestQuestionSubsystem.h"
 #include "Kismet/GameplayStatics.h"
 
 void UWordQuestGameInstance::StartNewAdventure()
@@ -9,6 +10,13 @@ void UWordQuestGameInstance::StartNewAdventure()
     bHasStageCheckpoint = true;
     bShowMainMenuOnStageOneLoad = false;
     ResetShopStock();
+
+    // A brand-new adventure gets a fresh non-repeating question pool.
+    // Restarting a stage does NOT call this, so previously used questions remain used.
+    if (UWordQuestQuestionSubsystem* Questions = GetSubsystem<UWordQuestQuestionSubsystem>())
+    {
+        Questions->ResetAdventureQuestions();
+    }
 }
 
 void UWordQuestGameInstance::SaveStageCheckpoint()
