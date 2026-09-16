@@ -64,14 +64,8 @@ void AWordQuestHUD::AddFloatingMessage(const FString& InText, const FColor& InCo
     Message.Duration = FMath::Max(0.5f, InDuration);
     FloatingMessages.Add(Message);
 
-    if (InText == TEXT("Correct!"))
-    {
-        PlayFeedbackTone(650.f, 980.f, 0.17f, 0.42f);
-    }
-    else if (InText == TEXT("Wrong!"))
-    {
-        PlayFeedbackTone(270.f, 145.f, 0.23f, 0.44f);
-    }
+    if (InText == TEXT("Correct!")) PlayFeedbackTone(650.f, 980.f, 0.17f, 0.42f);
+    else if (InText == TEXT("Wrong!")) PlayFeedbackTone(270.f, 145.f, 0.23f, 0.44f);
 }
 
 void AWordQuestHUD::DrawFloatingMessages()
@@ -121,12 +115,11 @@ void AWordQuestHUD::DrawHUD()
 
     const float ScreenW = Canvas->SizeX;
     const float ScreenH = Canvas->SizeY;
-    const FString StageName = GM->CurrentStage == 2 ? TEXT("SUNNY MEADOW") : TEXT("WHISPERING FOREST");
+    FString StageName = TEXT("WHISPERING FOREST");
+    if (GM->CurrentStage == 2) StageName = TEXT("SUNNY MEADOW");
+    else if (GM->CurrentStage == 3) StageName = TEXT("CRYSTAL CAVE");
 
-    if (GM->bShopOpen && !bShopWasOpen)
-    {
-        PlayFeedbackTone(520.f, 1100.f, 0.60f, 0.48f);
-    }
+    if (GM->bShopOpen && !bShopWasOpen) PlayFeedbackTone(520.f, 1100.f, 0.60f, 0.48f);
     bShopWasOpen = GM->bShopOpen;
 
     DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.62f), 20.f, 20.f, 720.f, 118.f);
