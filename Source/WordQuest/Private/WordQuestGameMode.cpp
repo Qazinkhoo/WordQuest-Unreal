@@ -5,6 +5,7 @@
 #include "WordQuestQuestionSubsystem.h"
 #include "WordQuestStageOneBuilder.h"
 #include "WordQuestStageTwoBuilder.h"
+#include "WordQuestStageThreeBuilder.h"
 #include "WordQuestHUD.h"
 #include "WordQuestPlayerController.h"
 #include "Kismet/GameplayStatics.h"
@@ -30,33 +31,39 @@ void AWordQuestGameMode::BeginPlay()
     if (!GI) return;
 
     const FString LevelName = UGameplayStatics::GetCurrentLevelName(this, true);
+    const bool bIsStageThreeMap = LevelName.Contains(TEXT("Stage03_CrystalCave"));
     const bool bIsStageTwoMap = LevelName.Contains(TEXT("Stage02_SunnyMeadow"));
 
-    if (bIsStageTwoMap)
+    if (bIsStageThreeMap)
+    {
+        CurrentStage = 3;
+        GI->PlayerState.Stage = 3;
+    }
+    else if (bIsStageTwoMap)
     {
         CurrentStage = 2;
         GI->PlayerState.Stage = 2;
-        GI->PlayerState.Wave = 1;
-        CurrentWave = 1;
     }
     else
     {
         CurrentStage = 1;
-        if (GI->PlayerState.CurrentHP <= 0)
-        {
-            GI->StartNewAdventure();
-        }
+        if (GI->PlayerState.CurrentHP <= 0) GI->StartNewAdventure();
         GI->PlayerState.Stage = 1;
-        GI->PlayerState.Wave = 1;
-        CurrentWave = 1;
     }
+
+    GI->PlayerState.Wave = 1;
+    CurrentWave = 1;
 
     if (APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0))
     {
         AdventureStartLocation = Pawn->GetActorLocation();
         const FVector BuilderLocation = Pawn->GetActorLocation() - FVector(150.f, 0.f, Pawn->GetActorLocation().Z);
 
-        if (CurrentStage == 2)
+        if (CurrentStage == 3)
+        {
+            GetWorld()->SpawnActor<AWordQuestStageThreeBuilder>(BuilderLocation, FRotator::ZeroRotator);
+        }
+        else if (CurrentStage == 2)
         {
             GetWorld()->SpawnActor<AWordQuestStageTwoBuilder>(BuilderLocation, FRotator::ZeroRotator);
         }
@@ -131,10 +138,7 @@ void AWordQuestGameMode::PlayTone(float StartFrequency, float EndFrequency, floa
 
     Sound->QueueAudio(reinterpret_cast<const uint8*>(PCM.GetData()), PCM.Num() * sizeof(int16));
     ActiveFeedbackSounds.Add(Sound);
-    if (ActiveFeedbackSounds.Num() > 12)
-    {
-        ActiveFeedbackSounds.RemoveAt(0);
-    }
+    if (ActiveFeedbackSounds.Num() > 12) ActiveFeedbackSounds.RemoveAt(0);
 
     UGameplayStatics::PlaySound2D(this, Sound, 1.f, 1.f, 0.f);
 }
@@ -176,7 +180,6 @@ bool AWordQuestGameMode::SubmitAnswer(int32 AnswerIndex)
             AdvanceWave();
 
             if (Player) Player->SetBattleLocked(bStageClear || bShopOpen);
-
             OnBattleStateChanged();
             return true;
         }
@@ -226,10 +229,7 @@ void AWordQuestGameMode::AdvanceWave()
     }
 
     ++CurrentWave;
-    if (UWordQuestGameInstance* GI = GetGameInstance<UWordQuestGameInstance>())
-    {
-        GI->PlayerState.Wave = CurrentWave;
-    }
+    if (UWordQuestGameInstance* GI = GetGameInstance<UWordQuestGameInstance>()) GI->PlayerState.Wave = CurrentWave;
 }
 
 void AWordQuestGameMode::OpenStageShop()
@@ -237,10 +237,7 @@ void AWordQuestGameMode::OpenStageShop()
     bShopOpen = true;
     if (UWordQuestGameInstance* GI = GetGameInstance<UWordQuestGameInstance>()) GI->ResetShopStock();
 
-    if (AWordQuestCharacter* Player = Cast<AWordQuestCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0)))
-    {
-        Player->SetBattleLocked(true);
-    }
+    if (AWordQuestCharacter* Player = Cast<AWordQuestCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0))) Player->SetBattleLocked(true);
 }
 
 void AWordQuestGameMode::BuyShopApple()
@@ -271,11 +268,14 @@ void AWordQuestGameMode::LeaveStageShop()
         return;
     }
 
-    bShopOpen = false;
-    if (AWordQuestCharacter* Player = Cast<AWordQuestCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0)))
+    if (CurrentStage == 2)
     {
-        Player->SetBattleLocked(true);
+        StartStageThree();
+        return;
     }
+
+    bShopOpen = false;
+    if (AWordQuestCharacter* Player = Cast<AWordQuestCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0))) Player->SetBattleLocked(true);
 }
 
 void AWordQuestGameMode::StartStageTwo()
@@ -291,4 +291,19 @@ void AWordQuestGameMode::StartStageTwo()
     CurrentEnemy = nullptr;
 
     UGameplayStatics::OpenLevel(this, FName(TEXT("Stage02_SunnyMeadow")));
+}
+
+void AWordQuestGameMode::StartStageThree()
+{
+    UWordQuestGameInstance* GI = GetGameInstance<UWordQuestGameInstance>();
+    if (!GI) return;
+
+    GI->PlayerState.Stage = 3;
+    GI->PlayerState.Wave = 1;
+    bShopOpen = false;
+    bBattleActive = false;
+    bStageClear = false;
+    CurrentEnemy = nullptr;
+
+    UGameplayStatics::OpenLevel(this, FName(TEXT("Stage03_CrystalCave")));
 }
