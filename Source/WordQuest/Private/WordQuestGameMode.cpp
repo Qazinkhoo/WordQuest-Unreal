@@ -247,43 +247,48 @@ void AWordQuestGameMode::ResolveSelectedAnswer()
             OnBattleStateChanged();
             return;
         }
+
+        // Boss survives: give a fresh question for the next hit.
+        bAnswerFeedbackActive = false;
+        SelectedAnswerIndex = INDEX_NONE;
+        LoadDifferentQuestion();
+        return;
     }
-    else
+
+    // Wrong answer: take the hit, but keep the SAME question on screen.
+    PlayTone(360.f, 180.f, 0.22f, 0.38f);
+    const bool bTookDamage = GI->ApplyEnemyHit();
+
+    if (Player)
     {
-        PlayTone(360.f, 180.f, 0.22f, 0.38f);
-        const bool bTookDamage = GI->ApplyEnemyHit();
-
-        if (Player)
+        if (bTookDamage)
         {
-            if (bTookDamage)
-            {
-                Player->ShowFloatingText(TEXT("-1 HP"), FColor::Red, 150.f);
-                Player->ShowFloatingText(TEXT("Wrong!"), FColor::Red, 205.f);
-                Player->PlayDamageCameraBump();
-            }
-            else
-            {
-                Player->ShowFloatingText(TEXT("Blocked!"), FColor::Cyan, 175.f);
-            }
+            Player->ShowFloatingText(TEXT("-1 HP"), FColor::Red, 150.f);
+            Player->ShowFloatingText(TEXT("Wrong! Try again"), FColor::Red, 205.f);
+            Player->PlayDamageCameraBump();
         }
-
-        if (GI->IsGameOver())
+        else
         {
-            bBattleActive = false;
-            bGameOver = true;
-            bAnswerFeedbackActive = false;
-            SelectedAnswerIndex = INDEX_NONE;
-            PlayTone(300.f, 90.f, 0.8f, 0.45f);
-            if (Player) Player->SetBattleLocked(true);
-            OnGameOver();
-            OnBattleStateChanged();
-            return;
+            Player->ShowFloatingText(TEXT("Blocked!"), FColor::Cyan, 175.f);
         }
     }
 
+    if (GI->IsGameOver())
+    {
+        bBattleActive = false;
+        bGameOver = true;
+        bAnswerFeedbackActive = false;
+        SelectedAnswerIndex = INDEX_NONE;
+        PlayTone(300.f, 90.f, 0.8f, 0.45f);
+        if (Player) Player->SetBattleLocked(true);
+        OnGameOver();
+        OnBattleStateChanged();
+        return;
+    }
+
+    // Clear only the feedback state. CurrentQuestion is intentionally unchanged.
     bAnswerFeedbackActive = false;
     SelectedAnswerIndex = INDEX_NONE;
-    LoadDifferentQuestion();
 }
 
 void AWordQuestGameMode::AdvanceWave()
