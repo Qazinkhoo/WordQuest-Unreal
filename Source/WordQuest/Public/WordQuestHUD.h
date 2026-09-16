@@ -38,6 +38,7 @@ private:
     UFont* GetHUDTextFont() const;
 
     bool bShopWasOpen = false;
+    bool bHeroFacingLeft = false;
 
     UPROPERTY()
     TObjectPtr<UFont> HDFont;
@@ -46,7 +47,16 @@ private:
     TObjectPtr<UTexture2D> MenuBackgroundTexture;
 
     UPROPERTY()
-    TObjectPtr<UTexture2D> HeroSpriteTexture;
+    TObjectPtr<UTexture2D> HeroFrontTexture;
+
+    UPROPERTY()
+    TObjectPtr<UTexture2D> HeroLeftTexture;
+
+    UPROPERTY()
+    TObjectPtr<UTexture2D> HeroBackTexture;
+
+    UPROPERTY()
+    TObjectPtr<UTexture2D> HeroRightTexture;
 
     UPROPERTY()
     TArray<TObjectPtr<USoundWaveProcedural>> ActiveFeedbackSounds;
