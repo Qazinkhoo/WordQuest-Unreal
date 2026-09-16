@@ -53,7 +53,6 @@ void AWordQuestStageTwoBuilder::BeginPlay()
         if (Background)
         {
             Background->ConfigureBackground(2, Origin);
-            Background->SetActorLabel(TEXT("Stage2_Background"));
         }
     }
 
@@ -82,7 +81,6 @@ void AWordQuestStageTwoBuilder::BeginPlay()
             if (Enemy)
             {
                 Enemy->ConfigureEnemy(Wave, Wave == 5);
-                Enemy->SetActorLabel(FString::Printf(TEXT("Stage2_Enemy_Wave_%d"), Wave));
             }
         }
     }
