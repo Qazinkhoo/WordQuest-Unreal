@@ -97,7 +97,7 @@ void UWordQuestStageBackgroundWidget::RefreshBackground()
         UCanvasPanelSlot* Slot = TileCanvas->AddChildToCanvas(TileImage);
         if (Slot)
         {
-            Slot->SetAnchors(FAnchors(0.f, 0.f));
+            Slot->SetAnchors(FAnchors(0.f, 0.f, 0.f, 0.f));
             Slot->SetAlignment(FVector2D(0.f, 0.f));
             Slot->SetPosition(FVector2D(Index * TileWidth, 0.f));
             Slot->SetSize(FVector2D(TileWidth, TileHeight));
