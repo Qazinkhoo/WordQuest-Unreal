@@ -5,7 +5,33 @@
 void UWordQuestGameInstance::StartNewAdventure()
 {
     PlayerState = FWordQuestPlayerState();
+    StageCheckpoint = PlayerState;
+    bHasStageCheckpoint = true;
+    bShowMainMenuOnStageOneLoad = false;
     ResetShopStock();
+}
+
+void UWordQuestGameInstance::SaveStageCheckpoint()
+{
+    StageCheckpoint = PlayerState;
+    StageCheckpoint.Wave = 1;
+    bHasStageCheckpoint = true;
+}
+
+bool UWordQuestGameInstance::RestoreStageCheckpoint()
+{
+    if (!bHasStageCheckpoint) return false;
+    PlayerState = StageCheckpoint;
+    PlayerState.Wave = 1;
+    ResetShopStock();
+    return true;
+}
+
+bool UWordQuestGameInstance::ConsumeShowMainMenuOnStageOneLoad()
+{
+    const bool bResult = bShowMainMenuOnStageOneLoad;
+    bShowMainMenuOnStageOneLoad = false;
+    return bResult;
 }
 
 void UWordQuestGameInstance::CollectSword()
