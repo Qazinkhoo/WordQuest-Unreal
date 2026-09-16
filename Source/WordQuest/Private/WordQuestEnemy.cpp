@@ -1,6 +1,7 @@
 #include "WordQuestEnemy.h"
 #include "WordQuestCharacter.h"
 #include "WordQuestGameMode.h"
+#include "WordQuestGameInstance.h"
 #include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -30,6 +31,11 @@ void AWordQuestEnemy::NotifyActorBeginOverlap(AActor* OtherActor)
 {
     Super::NotifyActorBeginOverlap(OtherActor);
     if (!Cast<AWordQuestCharacter>(OtherActor)) return;
+
+    if (UWordQuestGameInstance* GI = GetGameInstance<UWordQuestGameInstance>())
+    {
+        if (WaveNumber != GI->PlayerState.Wave) return;
+    }
 
     if (AWordQuestGameMode* GM = Cast<AWordQuestGameMode>(UGameplayStatics::GetGameMode(this)))
     {
