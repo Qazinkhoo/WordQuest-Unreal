@@ -29,6 +29,8 @@ public:
 
     UFUNCTION(BlueprintCallable) void CollectSword();
     UFUNCTION(BlueprintCallable) void SetBattleLocked(bool bLocked);
+    UFUNCTION(BlueprintCallable) void ShowFloatingText(const FString& InText, const FColor& InColor, float HeightOffset = 140.f);
+    UFUNCTION(BlueprintCallable) void PlayDamageCameraBump();
 
 private:
     void MoveRight(float Value);
