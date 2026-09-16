@@ -63,14 +63,8 @@ AWordQuestCharacter::AWordQuestCharacter()
     HeroWidgetComponent->SetupAttachment(GetCapsuleComponent());
     HeroWidgetComponent->SetWidgetClass(UWordQuestHeroWidget::StaticClass());
     HeroWidgetComponent->SetWidgetSpace(EWidgetSpace::World);
-
-    // The cropped side-view sprite is about 1:3 width-to-height.
-    // Matching that ratio here prevents the character from looking stretched.
     HeroWidgetComponent->SetDrawSize(FVector2D(100.f, 300.f));
     HeroWidgetComponent->SetPivot(FVector2D(0.5f, 0.5f));
-
-    // A 300-unit-tall widget centred at Z=51 places the feet around the
-    // bottom of the standard Character capsule (-96), so the hero is grounded.
     HeroWidgetComponent->SetRelativeLocation(FVector(0.f, -2.f, 51.f));
     HeroWidgetComponent->SetRelativeRotation(FRotator(0.f, 90.f, 0.f));
     HeroWidgetComponent->SetTwoSided(true);
@@ -81,9 +75,9 @@ AWordQuestCharacter::AWordQuestCharacter()
     ShadowWidgetComponent->SetupAttachment(GetCapsuleComponent());
     ShadowWidgetComponent->SetWidgetClass(UWordQuestShadowWidget::StaticClass());
     ShadowWidgetComponent->SetWidgetSpace(EWidgetSpace::World);
-    ShadowWidgetComponent->SetDrawSize(FVector2D(78.f, 8.f));
+    ShadowWidgetComponent->SetDrawSize(FVector2D(92.f, 13.f));
     ShadowWidgetComponent->SetPivot(FVector2D(0.5f, 0.5f));
-    ShadowWidgetComponent->SetRelativeLocation(FVector(0.f, 1.f, -94.f));
+    ShadowWidgetComponent->SetRelativeLocation(FVector(0.f, 3.f, -94.f));
     ShadowWidgetComponent->SetRelativeRotation(FRotator(0.f, 90.f, 0.f));
     ShadowWidgetComponent->SetTwoSided(true);
     ShadowWidgetComponent->SetBlendMode(EWidgetBlendMode::Transparent);
@@ -100,6 +94,7 @@ void AWordQuestCharacter::BeginPlay()
         if (HeroWidget)
         {
             HeroWidget->SetFacingLeft(false);
+            HeroWidget->SetMovementState(false, false);
         }
     }
 
@@ -118,7 +113,9 @@ void AWordQuestCharacter::UpdateHeroVisual(float DeltaSeconds)
     if (!HeroWidgetComponent) return;
 
     const float SpeedX = GetVelocity().X;
-    const bool bMoving = FMath::Abs(SpeedX) > 5.f && GetCharacterMovement()->IsMovingOnGround();
+    const bool bGrounded = GetCharacterMovement()->IsMovingOnGround();
+    const bool bMoving = FMath::Abs(SpeedX) > 5.f && bGrounded;
+    const bool bAirborne = !bGrounded;
 
     if (FMath::Abs(SpeedX) > 1.f)
     {
@@ -133,12 +130,17 @@ void AWordQuestCharacter::UpdateHeroVisual(float DeltaSeconds)
         }
     }
 
+    if (HeroWidget)
+    {
+        HeroWidget->SetMovementState(bMoving, bAirborne);
+    }
+
     MovementAnimTime += DeltaSeconds;
 
-    // Small step/bob animation while walking. The base position sits a few
-    // units into the floor so the feet still feel planted as the sprite bobs.
-    const float StepBob = bMoving ? FMath::Abs(FMath::Sin(MovementAnimTime * 10.f)) * 4.f : 0.f;
-    const float StepSway = bMoving ? FMath::Sin(MovementAnimTime * 5.f) * 1.4f : 0.f;
+    // Keep the full character mostly planted while the widget itself animates
+    // the upper body and legs. A tiny bob prevents the motion from looking stiff.
+    const float StepBob = bMoving ? FMath::Abs(FMath::Sin(MovementAnimTime * 10.5f)) * 1.6f : 0.f;
+    const float StepSway = bMoving ? FMath::Sin(MovementAnimTime * 5.25f) * 0.7f : 0.f;
     HeroWidgetComponent->SetRelativeLocation(FVector(StepSway, -2.f, 51.f + StepBob));
 }
 
@@ -147,7 +149,7 @@ void AWordQuestCharacter::UpdateGroundShadow()
     if (!ShadowWidgetComponent || !GetWorld()) return;
 
     const FVector ActorLocation = GetActorLocation();
-    const FVector TraceStart = ActorLocation + FVector(0.f, 0.f, 20.f);
+    const FVector TraceStart = ActorLocation + FVector(0.f, 0.f, 24.f);
     const FVector TraceEnd = ActorLocation - FVector(0.f, 0.f, 650.f);
 
     FHitResult Hit;
@@ -161,16 +163,16 @@ void AWordQuestCharacter::UpdateGroundShadow()
     }
 
     ShadowWidgetComponent->SetVisibility(true);
-    ShadowWidgetComponent->SetWorldLocation(Hit.ImpactPoint + FVector(0.f, 1.f, 2.5f));
+    ShadowWidgetComponent->SetWorldLocation(Hit.ImpactPoint + FVector(0.f, 3.f, 3.0f));
 
     const float CapsuleHalfHeight = GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
     const float FeetHeight = ActorLocation.Z - CapsuleHalfHeight;
     const float HeightAboveGround = FMath::Max(0.f, FeetHeight - Hit.ImpactPoint.Z);
 
-    // The shadow becomes smaller when the player jumps, making the jump
-    // easier to read visually while keeping the shadow on the actual ground.
-    const float ShadowScale = FMath::Clamp(1.f - HeightAboveGround / 320.f, 0.45f, 1.f);
-    ShadowWidgetComponent->SetDrawSize(FVector2D(78.f * ShadowScale, FMath::Max(4.f, 8.f * ShadowScale)));
+    const float ShadowScale = FMath::Clamp(1.f - HeightAboveGround / 300.f, 0.42f, 1.f);
+    const float Width = 92.f * ShadowScale;
+    const float Height = FMath::Max(6.f, 13.f * ShadowScale);
+    ShadowWidgetComponent->SetDrawSize(FVector2D(Width, Height));
 }
 
 void AWordQuestCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
