@@ -32,6 +32,7 @@ private:
     TArray<FWordQuestHUDMessage> FloatingMessages;
     void DrawFloatingMessages();
     void DrawMenuVoxelHero(float CenterX, float TopY, float Scale);
+    void DrawMenuHeroSprite(float X, float Y, float W, float H);
     void PlayFeedbackTone(float StartFrequency, float EndFrequency, float DurationSeconds, float Volume = 0.4f);
     UFont* GetHUDTextFont() const;
 
@@ -42,6 +43,9 @@ private:
 
     UPROPERTY()
     TObjectPtr<UTexture2D> MenuBackgroundTexture;
+
+    UPROPERTY()
+    TObjectPtr<UTexture2D> HeroSpriteTexture;
 
     UPROPERTY()
     TArray<TObjectPtr<USoundWaveProcedural>> ActiveFeedbackSounds;
