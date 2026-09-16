@@ -8,7 +8,7 @@ class USpringArmComponent;
 class UCameraComponent;
 class UStaticMeshComponent;
 class UWidgetComponent;
-class UWordQuestHeroWidget;
+class UWordQuestBodyPartWidget;
 
 UCLASS()
 class WORDQUEST_API AWordQuestCharacter : public ACharacter
@@ -23,7 +23,12 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly) TObjectPtr<USpringArmComponent> CameraBoom;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly) TObjectPtr<UCameraComponent> SideCamera;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Hero Visual") TObjectPtr<UWidgetComponent> HeroWidgetComponent;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Hero Visual") TObjectPtr<UWidgetComponent> HeadPartComponent;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Hero Visual") TObjectPtr<UWidgetComponent> TorsoPartComponent;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Hero Visual") TObjectPtr<UWidgetComponent> LeftArmPartComponent;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Hero Visual") TObjectPtr<UWidgetComponent> RightArmPartComponent;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Hero Visual") TObjectPtr<UWidgetComponent> LeftLegPartComponent;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Hero Visual") TObjectPtr<UWidgetComponent> RightLegPartComponent;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Hero Visual") TObjectPtr<UWidgetComponent> ShadowWidgetComponent;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Voxel Visual") TObjectPtr<UStaticMeshComponent> BlockBody;
@@ -42,11 +47,16 @@ private:
     void MoveRight(float Value);
     void UpdateHeroVisual(float DeltaSeconds);
     void UpdateGroundShadow();
+    void UpdateFacing();
 
     bool bBattleLocked = false;
     bool bFacingLeft = false;
     float MovementAnimTime = 0.f;
 
-    UPROPERTY()
-    TObjectPtr<UWordQuestHeroWidget> HeroWidget;
+    UPROPERTY() TObjectPtr<UWordQuestBodyPartWidget> HeadPartWidget;
+    UPROPERTY() TObjectPtr<UWordQuestBodyPartWidget> TorsoPartWidget;
+    UPROPERTY() TObjectPtr<UWordQuestBodyPartWidget> LeftArmPartWidget;
+    UPROPERTY() TObjectPtr<UWordQuestBodyPartWidget> RightArmPartWidget;
+    UPROPERTY() TObjectPtr<UWordQuestBodyPartWidget> LeftLegPartWidget;
+    UPROPERTY() TObjectPtr<UWordQuestBodyPartWidget> RightLegPartWidget;
 };
