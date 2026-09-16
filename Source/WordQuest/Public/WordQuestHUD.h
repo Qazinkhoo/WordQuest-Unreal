@@ -39,9 +39,14 @@ private:
 
     bool bShopWasOpen = false;
 
+    // Runtime UFont built from Content/UI/Fonts/WordQuestUIFont (Font Face).
+    // Keeping the existing Canvas HUD means every screen automatically uses
+    // the same chunky Word Quest typeface once this font is constructed.
     UPROPERTY()
     TObjectPtr<UFont> HDFont;
 
+    // Complete generated title-screen artwork. Its title, hero and menu labels
+    // are baked into the image, so the HUD does not redraw the old introduction.
     UPROPERTY()
     TObjectPtr<UTexture2D> MenuBackgroundTexture;
 
