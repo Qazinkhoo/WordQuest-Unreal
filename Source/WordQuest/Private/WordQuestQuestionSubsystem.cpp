@@ -59,7 +59,9 @@ bool UWordQuestQuestionSubsystem::GetNextQuestionForWave(int32 Wave, FWordQuestQ
 {
     if (RemainingQuestionIndices.IsEmpty()) return false;
 
-    const int32 TargetDifficulty = FMath::Clamp(Wave, 1, 5);
+    // Gentler Year 4 curve:
+    // Waves 1-2 = very easy, Waves 3-4 = easy grammar, Wave 5 boss = moderate.
+    const int32 TargetDifficulty = (Wave <= 2) ? 1 : ((Wave <= 4) ? 2 : 3);
     TArray<int32> CandidatePositions;
 
     for (int32 Distance = 0; Distance <= 4; ++Distance)
@@ -104,7 +106,6 @@ void UWordQuestQuestionSubsystem::BuildYear4QuestionBank()
         QuestionBank.Add(Q);
     };
 
-    // Do not call this lambda AddDynamic: Unreal defines AddDynamic as a delegate macro.
     auto AddGeneratedQuestion = [this](const FString& Id, const FString& Prompt, const TArray<FString>& Options, int32 Correct, const FString& Category)
     {
         FWordQuestQuestion Q;
