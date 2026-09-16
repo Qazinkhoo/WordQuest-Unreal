@@ -1,18 +1,39 @@
 #include "WordQuestEnemy.h"
+#include "WordQuestCharacter.h"
+#include "WordQuestGameMode.h"
 #include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "UObject/ConstructorHelpers.h"
 
 AWordQuestEnemy::AWordQuestEnemy()
 {
     PrimaryActorTick.bCanEverTick = false;
+
     Trigger = CreateDefaultSubobject<UBoxComponent>(TEXT("Trigger"));
     SetRootComponent(Trigger);
-    Trigger->SetBoxExtent(FVector(70.f, 70.f, 70.f));
+    Trigger->SetBoxExtent(FVector(70.f, 70.f, 90.f));
     Trigger->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
 
     Visual = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Visual"));
     Visual->SetupAttachment(Trigger);
     Visual->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+    static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh(TEXT("/Engine/BasicShapes/Cube.Cube"));
+    if (CubeMesh.Succeeded()) Visual->SetStaticMesh(CubeMesh.Object);
+    Visual->SetRelativeScale3D(FVector(0.8f, 0.8f, 1.1f));
+    Visual->SetRelativeLocation(FVector(0.f, 0.f, 80.f));
+}
+
+void AWordQuestEnemy::NotifyActorBeginOverlap(AActor* OtherActor)
+{
+    Super::NotifyActorBeginOverlap(OtherActor);
+    if (!Cast<AWordQuestCharacter>(OtherActor)) return;
+
+    if (AWordQuestGameMode* GM = Cast<AWordQuestGameMode>(UGameplayStatics::GetGameMode(this)))
+    {
+        GM->StartEncounter(this);
+    }
 }
 
 void AWordQuestEnemy::ConfigureEnemy(int32 InWave, bool bInBoss)
