@@ -4,6 +4,7 @@
 #include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "TimerManager.h"
 #include "UObject/ConstructorHelpers.h"
 
 AWordQuestEnemy::AWordQuestEnemy()
@@ -49,4 +50,22 @@ bool AWordQuestEnemy::ReceiveWordDamage(int32 DamageAmount)
 {
     CurrentHP = FMath::Max(0, CurrentHP - FMath::Max(0, DamageAmount));
     return CurrentHP <= 0;
+}
+
+void AWordQuestEnemy::PlayHitPulse()
+{
+    if (!GetWorld()) return;
+
+    const FVector BaseScale = bBoss ? FVector(1.5f) : FVector(1.f);
+    SetActorScale3D(BaseScale * 1.12f);
+
+    FTimerHandle ResetHandle;
+    TWeakObjectPtr<AWordQuestEnemy> WeakSelf = this;
+    GetWorld()->GetTimerManager().SetTimer(ResetHandle, [WeakSelf, BaseScale]()
+    {
+        if (WeakSelf.IsValid())
+        {
+            WeakSelf->SetActorScale3D(BaseScale);
+        }
+    }, 0.12f, false);
 }
