@@ -21,6 +21,8 @@ void AWordQuestGameMode::BeginPlay()
     CurrentWave = 1;
     bBattleActive = false;
     bStageClear = false;
+    bShopOpen = false;
+
     if (UWordQuestGameInstance* GI = GetGameInstance<UWordQuestGameInstance>())
     {
         if (GI->PlayerState.Stage <= 1 && GI->PlayerState.CurrentHP <= 0) GI->StartNewAdventure();
@@ -37,7 +39,7 @@ void AWordQuestGameMode::BeginPlay()
 
 void AWordQuestGameMode::StartEncounter(AWordQuestEnemy* Enemy)
 {
-    if (!Enemy || bBattleActive || bStageClear) return;
+    if (!Enemy || bBattleActive || bStageClear || bShopOpen) return;
     CurrentEnemy = Enemy;
     CurrentWave = Enemy->WaveNumber;
     bBattleActive = true;
@@ -104,7 +106,7 @@ bool AWordQuestGameMode::SubmitAnswer(int32 AnswerIndex)
 
             if (Player)
             {
-                Player->SetBattleLocked(false);
+                Player->SetBattleLocked(bStageClear || bShopOpen);
             }
 
             OnBattleStateChanged();
@@ -132,10 +134,7 @@ bool AWordQuestGameMode::SubmitAnswer(int32 AnswerIndex)
         if (GI->IsGameOver())
         {
             bBattleActive = false;
-            if (Player)
-            {
-                Player->SetBattleLocked(true);
-            }
+            if (Player) Player->SetBattleLocked(true);
             OnGameOver();
             OnBattleStateChanged();
             return false;
@@ -151,9 +150,58 @@ void AWordQuestGameMode::AdvanceWave()
     if (CurrentWave >= 5)
     {
         bStageClear = true;
+        OpenStageShop();
         OnStageCleared();
         return;
     }
+
     ++CurrentWave;
-    if (UWordQuestGameInstance* GI = GetGameInstance<UWordQuestGameInstance>()) GI->PlayerState.Wave = CurrentWave;
+    if (UWordQuestGameInstance* GI = GetGameInstance<UWordQuestGameInstance>())
+    {
+        GI->PlayerState.Wave = CurrentWave;
+    }
+}
+
+void AWordQuestGameMode::OpenStageShop()
+{
+    bShopOpen = true;
+    if (UWordQuestGameInstance* GI = GetGameInstance<UWordQuestGameInstance>())
+    {
+        GI->ResetShopStock();
+    }
+
+    if (AWordQuestCharacter* Player = Cast<AWordQuestCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0)))
+    {
+        Player->SetBattleLocked(true);
+    }
+}
+
+void AWordQuestGameMode::BuyShopApple()
+{
+    if (!bShopOpen) return;
+    if (UWordQuestGameInstance* GI = GetGameInstance<UWordQuestGameInstance>()) GI->BuyApple();
+}
+
+void AWordQuestGameMode::BuyShopStar()
+{
+    if (!bShopOpen) return;
+    if (UWordQuestGameInstance* GI = GetGameInstance<UWordQuestGameInstance>()) GI->BuyStar();
+}
+
+void AWordQuestGameMode::BuyShopArmour()
+{
+    if (!bShopOpen) return;
+    if (UWordQuestGameInstance* GI = GetGameInstance<UWordQuestGameInstance>()) GI->BuyArmour();
+}
+
+void AWordQuestGameMode::LeaveStageShop()
+{
+    if (!bShopOpen) return;
+    bShopOpen = false;
+
+    if (AWordQuestCharacter* Player = Cast<AWordQuestCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0)))
+    {
+        Player->ShowFloatingText(TEXT("Stage 2 coming next"), FColor::White, 180.f);
+        Player->SetBattleLocked(true);
+    }
 }
