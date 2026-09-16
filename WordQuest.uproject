@@ -1,0 +1,16 @@
+{
+  "FileVersion": 3,
+  "EngineAssociation": "5.6",
+  "Category": "Games",
+  "Description": "Word Quest - Year 4 British English educational side-scrolling adventure",
+  "Modules": [
+    {
+      "Name": "WordQuest",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    }
+  ],
+  "Plugins": [
+    { "Name": "Paper2D", "Enabled": true }
+  ]
+}
