@@ -6,13 +6,17 @@
 
 class UBoxComponent;
 class UStaticMeshComponent;
+class UWidgetComponent;
+class UWordQuestEnemyWidget;
 
 UCLASS()
 class WORDQUEST_API AWordQuestEnemy : public AActor
 {
     GENERATED_BODY()
+
 public:
     AWordQuestEnemy();
+    virtual void BeginPlay() override;
     virtual void NotifyActorBeginOverlap(AActor* OtherActor) override;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Word Quest") bool bBoss = false;
@@ -26,4 +30,11 @@ public:
 
     UPROPERTY(VisibleAnywhere) TObjectPtr<UBoxComponent> Trigger;
     UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> Visual;
+    UPROPERTY(VisibleAnywhere) TObjectPtr<UWidgetComponent> EnemyWidgetComponent;
+
+private:
+    void RefreshEnemyVisual();
+
+    UPROPERTY()
+    TObjectPtr<UWordQuestEnemyWidget> EnemyWidget;
 };
