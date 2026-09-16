@@ -14,20 +14,23 @@ void AWordQuestMenuHUD::DrawHUD()
     AWordQuestGameMode* GM = GetWorld()->GetAuthGameMode<AWordQuestGameMode>();
     if (!GM || !GM->bMainMenuOpen) return;
 
-    // No selection rectangle is drawn here. The old yellow frame has been
-    // removed completely. Only the creator credit is added over the artwork.
+    // No selection rectangle is drawn here. Only the creator credit is added.
     UFont* Font = GetHUDTextFont();
     if (!Font) return;
 
     const FString Credit = TEXT("MADE BY MR QAZIN KHOO");
-    const float Scale = 0.62f;
+
+    // Exactly twice the previous size (0.62 -> 1.24).
+    const float Scale = 1.24f;
 
     float TextW = 0.f;
     float TextH = 0.f;
     Canvas->StrLen(Font, Credit, TextW, TextH);
 
     const float X = (Canvas->SizeX - TextW * Scale) * 0.5f;
-    const float Y = Canvas->SizeY * 0.865f;
+
+    // Move it slightly upward so the larger credit remains fully visible.
+    const float Y = Canvas->SizeY * 0.82f;
 
     Canvas->SetDrawColor(FColor(255, 245, 210));
     Canvas->DrawText(Font, Credit, X, Y, Scale, Scale);
