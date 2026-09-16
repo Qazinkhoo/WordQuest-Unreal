@@ -33,6 +33,7 @@ public:
     UFUNCTION(BlueprintCallable) void BuyShopArmour();
     UFUNCTION(BlueprintCallable) void LeaveStageShop();
     UFUNCTION(BlueprintCallable) void StartStageTwo();
+    UFUNCTION(BlueprintCallable) void StartStageThree();
 
     UFUNCTION(BlueprintImplementableEvent) void OnQuestionChanged();
     UFUNCTION(BlueprintImplementableEvent) void OnBattleStateChanged();
