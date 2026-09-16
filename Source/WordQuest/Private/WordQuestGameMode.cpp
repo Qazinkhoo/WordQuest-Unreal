@@ -4,11 +4,15 @@
 #include "WordQuestGameInstance.h"
 #include "WordQuestQuestionSubsystem.h"
 #include "WordQuestStageOneBuilder.h"
+#include "WordQuestHUD.h"
+#include "WordQuestPlayerController.h"
 #include "Kismet/GameplayStatics.h"
 
 AWordQuestGameMode::AWordQuestGameMode()
 {
     DefaultPawnClass = AWordQuestCharacter::StaticClass();
+    HUDClass = AWordQuestHUD::StaticClass();
+    PlayerControllerClass = AWordQuestPlayerController::StaticClass();
 }
 
 void AWordQuestGameMode::BeginPlay()
