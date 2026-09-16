@@ -15,9 +15,12 @@ public:
 
     UFUNCTION(BlueprintCallable, Category="Word Quest|Questions") void ResetAdventureQuestions();
     UFUNCTION(BlueprintCallable, Category="Word Quest|Questions") bool GetNextQuestion(FWordQuestQuestion& OutQuestion);
+    UFUNCTION(BlueprintCallable, Category="Word Quest|Questions") bool GetNextQuestionForWave(int32 Wave, FWordQuestQuestion& OutQuestion);
 
 private:
     TArray<FWordQuestQuestion> QuestionBank;
     TArray<int32> RemainingQuestionIndices;
     void BuildYear4QuestionBank();
+    int32 GetDifficultyScore(const FWordQuestQuestion& Question) const;
+    void ShuffleAnswers(FWordQuestQuestion& Question) const;
 };
