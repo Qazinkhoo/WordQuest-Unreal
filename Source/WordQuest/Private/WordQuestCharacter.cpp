@@ -1,11 +1,14 @@
 #include "WordQuestCharacter.h"
 #include "WordQuestGameInstance.h"
+#include "WordQuestFloatingText.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/InputComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Engine/World.h"
+#include "TimerManager.h"
 #include "UObject/ConstructorHelpers.h"
 
 AWordQuestCharacter::AWordQuestCharacter()
@@ -83,4 +86,35 @@ void AWordQuestCharacter::SetBattleLocked(bool bLocked)
     {
         GetCharacterMovement()->StopMovementImmediately();
     }
+}
+
+void AWordQuestCharacter::ShowFloatingText(const FString& InText, const FColor& InColor, float HeightOffset)
+{
+    UWorld* World = GetWorld();
+    if (!World) return;
+
+    const FVector SpawnLocation = GetActorLocation() + FVector(0.f, 0.f, HeightOffset);
+    AWordQuestFloatingText* FloatingText = World->SpawnActor<AWordQuestFloatingText>(SpawnLocation, FRotator(0.f, 90.f, 0.f));
+    if (FloatingText)
+    {
+        FloatingText->SetupText(InText, InColor);
+    }
+}
+
+void AWordQuestCharacter::PlayDamageCameraBump()
+{
+    if (!SideCamera || !GetWorld()) return;
+
+    const FVector OriginalLocation = SideCamera->GetRelativeLocation();
+    SideCamera->SetRelativeLocation(OriginalLocation + FVector(0.f, 0.f, 18.f));
+
+    FTimerHandle ResetHandle;
+    TWeakObjectPtr<UCameraComponent> WeakCamera = SideCamera;
+    GetWorld()->GetTimerManager().SetTimer(ResetHandle, [WeakCamera, OriginalLocation]()
+    {
+        if (WeakCamera.IsValid())
+        {
+            WeakCamera->SetRelativeLocation(OriginalLocation);
+        }
+    }, 0.10f, false);
 }
