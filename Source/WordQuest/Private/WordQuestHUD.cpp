@@ -5,8 +5,10 @@
 #include "Engine/Canvas.h"
 #include "Engine/Engine.h"
 #include "Engine/Font.h"
+#include "Engine/FontFace.h"
 #include "Engine/Texture2D.h"
 #include "Engine/World.h"
+#include "Fonts/CompositeFont.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/Pawn.h"
 #include "Kismet/GameplayStatics.h"
@@ -16,10 +18,44 @@
 
 AWordQuestHUD::AWordQuestHUD()
 {
-    static ConstructorHelpers::FObjectFinder<UFont> FontObject(TEXT("/Engine/EngineFonts/RobotoDistanceField.RobotoDistanceField"));
-    HDFont = FontObject.Succeeded() ? FontObject.Object : nullptr;
-    MenuBackgroundTexture = LoadObject<UTexture2D>(nullptr, TEXT("/Game/UI/WordQuestForestBackground.WordQuestForestBackground"));
-    HeroSpriteTexture = LoadObject<UTexture2D>(nullptr, TEXT("/Game/UI/WordQuestHeroSprite.WordQuestHeroSprite"));
+    static ConstructorHelpers::FObjectFinder<UFont> FallbackFontObject(TEXT("/Engine/EngineFonts/RobotoDistanceField.RobotoDistanceField"));
+    HDFont = FallbackFontObject.Succeeded() ? FallbackFontObject.Object : nullptr;
+
+    // The new introduction is a complete title-screen composition. We draw it
+    // directly, without the previous extra title, button and placeholder hero.
+    MenuBackgroundTexture = LoadObject<UTexture2D>(nullptr, TEXT("/Game/UI/WordQuestIntro.WordQuestIntro"));
+
+    // Kept only for the legacy helper functions. Gameplay uses the world-space
+    // character component, not this HUD sprite.
+    HeroSpriteTexture = nullptr;
+}
+
+void AWordQuestHUD::BeginPlay()
+{
+    Super::BeginPlay();
+
+    // Importing a TTF in Unreal creates a Font Face. Build a runtime UFont from
+    // that Font Face so the existing Canvas HUD can use the same Word Quest font
+    // everywhere without requiring another manually-created Font asset.
+    UFontFace* WordQuestFontFace = LoadObject<UFontFace>(nullptr, TEXT("/Game/UI/Fonts/WordQuestUIFont.WordQuestUIFont"));
+    if (WordQuestFontFace)
+    {
+        UFont* RuntimeFont = NewObject<UFont>(this, TEXT("WordQuestRuntimeFont"));
+        if (RuntimeFont)
+        {
+            RuntimeFont->FontCacheType = EFontCacheType::Runtime;
+            RuntimeFont->LegacyFontName = FName(TEXT("Regular"));
+            RuntimeFont->LegacyFontSize = 24;
+            RuntimeFont->CompositeFont.DefaultTypeface.Fonts.Reset();
+
+            FTypefaceEntry RegularEntry(FName(TEXT("Regular")));
+            RegularEntry.Font = FFontData(WordQuestFontFace, 0);
+            RuntimeFont->CompositeFont.DefaultTypeface.Fonts.Add(RegularEntry);
+            RuntimeFont->CompositeFont.MakeDirty();
+
+            HDFont = RuntimeFont;
+        }
+    }
 }
 
 UFont* AWordQuestHUD::GetHUDTextFont() const
@@ -66,41 +102,13 @@ void AWordQuestHUD::DrawMenuHeroSprite(float X, float Y, float W, float H)
         return;
     }
 
-    // First frame of the supplied 4-frame sprite sheet: front-facing pose.
     DrawTexture(HeroSpriteTexture, X, Y, W, H, 0.f, 0.f, 0.25f, 1.f, FLinearColor::White, BLEND_Translucent);
 }
 
 void AWordQuestHUD::DrawGameplayHeroSprite()
 {
-    if (!Canvas || !HeroSpriteTexture || !PlayerOwner) return;
-
-    APawn* PlayerPawn = PlayerOwner->GetPawn();
-    if (!PlayerPawn) return;
-
-    FVector2D ScreenPosition;
-    const FVector WorldPosition = PlayerPawn->GetActorLocation() + FVector(0.f, 0.f, 72.f);
-    if (!PlayerOwner->ProjectWorldLocationToScreen(WorldPosition, ScreenPosition, true)) return;
-
-    const FVector Velocity = PlayerPawn->GetVelocity();
-    const bool bFacingLeft = Velocity.X < -1.f;
-
-    // The supplied sheet is front / side / back / side. Use a side pose in gameplay.
-    const float U = bFacingLeft ? 0.75f : 0.25f;
-    const float SpriteW = 108.f;
-    const float SpriteH = 172.f;
-
-    DrawTexture(
-        HeroSpriteTexture,
-        ScreenPosition.X - SpriteW * 0.5f,
-        ScreenPosition.Y - SpriteH * 0.62f,
-        SpriteW,
-        SpriteH,
-        U,
-        0.f,
-        0.25f,
-        1.f,
-        FLinearColor::White,
-        BLEND_Translucent);
+    // Gameplay hero is rendered by AWordQuestCharacter's world-space widget.
+    // This old HUD overlay is intentionally disabled.
 }
 
 void AWordQuestHUD::PlayFeedbackTone(float StartFrequency, float EndFrequency, float DurationSeconds, float Volume)
@@ -224,27 +232,13 @@ void AWordQuestHUD::DrawHUD()
         if (MenuBackgroundTexture)
         {
             DrawTexture(MenuBackgroundTexture, 0.f, 0.f, ScreenW, ScreenH, 0.f, 0.f, 1.f, 1.f, FLinearColor::White, BLEND_Opaque);
-            DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.30f), 0.f, 0.f, ScreenW, ScreenH);
         }
         else
         {
-            DrawRect(FLinearColor(0.02f, 0.03f, 0.05f, 0.95f), 0.f, 0.f, ScreenW, ScreenH);
+            DrawRect(FLinearColor(0.02f, 0.03f, 0.05f, 0.98f), 0.f, 0.f, ScreenW, ScreenH);
+            DrawCenteredBlockText(TEXT("WORD QUEST"), ScreenW * 0.5f, ScreenH * 0.28f, 2.6f, FColor(255, 226, 72));
+            DrawCenteredBlockText(TEXT("START QUEST"), ScreenW * 0.5f, ScreenH * 0.58f, 1.55f, FColor(255, 226, 72));
         }
-
-        DrawMenuHeroSprite(ScreenW * 0.10f, ScreenH * 0.29f, 280.f, 400.f);
-
-        const float MenuCenterX = ScreenW * 0.61f;
-        DrawCenteredBlockText(TEXT("WORD QUEST"), MenuCenterX, ScreenH * 0.20f, 3.45f, FColor(255, 226, 72));
-        DrawCenteredBlockText(TEXT("Created by Qazin Khoo"), MenuCenterX, ScreenH * 0.40f, 1.35f, FColor::White);
-
-        const float ButtonW = ScreenW * 0.34f;
-        const float ButtonH = 92.f;
-        const float ButtonX = MenuCenterX - ButtonW * 0.5f;
-        const float ButtonY = ScreenH * 0.56f;
-        DrawRect(FLinearColor(0.04f, 0.12f, 0.04f, 0.95f), ButtonX - 5.f, ButtonY - 5.f, ButtonW + 10.f, ButtonH + 10.f);
-        DrawRect(FLinearColor(0.10f, 0.42f, 0.12f, 0.95f), ButtonX, ButtonY, ButtonW, ButtonH);
-        DrawCenteredBlockText(TEXT("START ADVENTURE"), MenuCenterX, ButtonY + 20.f, 1.75f, FColor(170, 255, 110));
-        DrawCenteredBlockText(TEXT("PRESS ENTER"), MenuCenterX, ScreenH * 0.70f, 1.05f, FColor::White);
         return;
     }
 
@@ -265,8 +259,6 @@ void AWordQuestHUD::DrawHUD()
 
     if (GM->bShopOpen && !bShopWasOpen) PlayFeedbackTone(520.f, 1100.f, 0.60f, 0.48f);
     bShopWasOpen = GM->bShopOpen;
-
-    DrawGameplayHeroSprite();
 
     DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.68f), 20.f, 20.f, 760.f, 150.f);
     DrawBlockText(FString::Printf(TEXT("STAGE %d - %s    WAVE %d/5"), GM->CurrentStage, *StageName, GM->CurrentWave), 35.f, 28.f, 1.05f, FColor::White);
