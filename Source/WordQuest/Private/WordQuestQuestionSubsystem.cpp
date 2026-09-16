@@ -33,7 +33,7 @@ void UWordQuestQuestionSubsystem::ShuffleAnswers(FWordQuestQuestion& Question) c
 
 int32 UWordQuestQuestionSubsystem::GetDifficultyScore(const FWordQuestQuestion& Question) const
 {
-    const FString Category = Question.Category.ToString();
+    const FString& Category = Question.Category;
     if (Category == TEXT("Vocabulary") || Category == TEXT("Spelling") || Category == TEXT("Prepositions")) return 1;
     if (Category == TEXT("Grammar") || Category == TEXT("Word Classes")) return 2;
     if (Category == TEXT("Tenses") || Category == TEXT("Future Tense") || Category == TEXT("Comparatives") || Category == TEXT("Adverbs")) return 3;
@@ -104,7 +104,8 @@ void UWordQuestQuestionSubsystem::BuildYear4QuestionBank()
         QuestionBank.Add(Q);
     };
 
-    auto AddDynamic = [this](const FString& Id, const FString& Prompt, const TArray<FString>& Options, int32 Correct, const FString& Category)
+    // Do not call this lambda AddDynamic: Unreal defines AddDynamic as a delegate macro.
+    auto AddGeneratedQuestion = [this](const FString& Id, const FString& Prompt, const TArray<FString>& Options, int32 Correct, const FString& Category)
     {
         FWordQuestQuestion Q;
         Q.Id = FName(*Id);
@@ -146,9 +147,9 @@ void UWordQuestQuestionSubsystem::BuildYear4QuestionBank()
 
     for (int32 i = 0; i < 20; ++i)
     {
-        AddDynamic(FString::Printf(TEXT("EASY_OPP_%02d"), i),
+        AddGeneratedQuestion(FString::Printf(TEXT("EASY_OPP_%02d"), i),
             FString::Printf(TEXT("Which word means the opposite of '%s'?"), OppositeWords[i][0]),
-            {OppositeWords[i][1], OppositeWords[(i + 3) % 20][1], OppositeWords[(i + 7) % 20][1], OppositeWords[(i + 11) % 20][1]},
+            TArray<FString>{OppositeWords[i][1], OppositeWords[(i + 3) % 20][1], OppositeWords[(i + 7) % 20][1], OppositeWords[(i + 11) % 20][1]},
             0, TEXT("Vocabulary"));
     }
 
@@ -169,13 +170,13 @@ void UWordQuestQuestionSubsystem::BuildYear4QuestionBank()
     {
         for (int32 v = 0; v < 8; ++v)
         {
-            AddDynamic(FString::Printf(TEXT("GRAMMAR_PRESENT_%02d_%02d"), s, v),
+            AddGeneratedQuestion(FString::Printf(TEXT("GRAMMAR_PRESENT_%02d_%02d"), s, v),
                 FString::Printf(TEXT("%s ___ %s."), Subjects[s], Verbs[v].Tail),
-                {Verbs[v].Base, Verbs[v].Third, Verbs[v].Past, Verbs[v].Ing}, 1, TEXT("Grammar"));
+                TArray<FString>{Verbs[v].Base, Verbs[v].Third, Verbs[v].Past, Verbs[v].Ing}, 1, TEXT("Grammar"));
 
-            AddDynamic(FString::Printf(TEXT("TENSE_PAST_%02d_%02d"), s, v),
+            AddGeneratedQuestion(FString::Printf(TEXT("TENSE_PAST_%02d_%02d"), s, v),
                 FString::Printf(TEXT("Yesterday, %s ___ %s."), Subjects[s], Verbs[v].Tail),
-                {Verbs[v].Base, Verbs[v].Third, Verbs[v].Past, Verbs[v].Ing}, 2, TEXT("Tenses"));
+                TArray<FString>{Verbs[v].Base, Verbs[v].Third, Verbs[v].Past, Verbs[v].Ing}, 2, TEXT("Tenses"));
         }
     }
 
@@ -205,8 +206,8 @@ void UWordQuestQuestionSubsystem::BuildYear4QuestionBank()
 
     for (int32 i = 0; i < 20; ++i)
     {
-        AddDynamic(FString::Printf(TEXT("CONJ_%02d"), i), Conjunctions[i].Prompt,
-            {Conjunctions[i].Correct, Conjunctions[i].A, Conjunctions[i].B, Conjunctions[i].C}, 0, TEXT("Conjunctions"));
+        AddGeneratedQuestion(FString::Printf(TEXT("CONJ_%02d"), i), Conjunctions[i].Prompt,
+            TArray<FString>{Conjunctions[i].Correct, Conjunctions[i].A, Conjunctions[i].B, Conjunctions[i].C}, 0, TEXT("Conjunctions"));
     }
 
     const TCHAR* InstructionSentences[] = {
@@ -219,9 +220,9 @@ void UWordQuestQuestionSubsystem::BuildYear4QuestionBank()
 
     for (int32 i = 0; i < 20; ++i)
     {
-        AddDynamic(FString::Printf(TEXT("TYPE_%02d"), i),
+        AddGeneratedQuestion(FString::Printf(TEXT("TYPE_%02d"), i),
             FString::Printf(TEXT("What type of sentence is this?  %s"), InstructionSentences[i]),
-            {TEXT("instruction"), TEXT("question"), TEXT("exclamation"), TEXT("statement")}, 0, TEXT("Sentence Types"));
+            TArray<FString>{TEXT("instruction"), TEXT("question"), TEXT("exclamation"), TEXT("statement")}, 0, TEXT("Sentence Types"));
     }
 
     const TCHAR* PunctuationPrompts[] = {
@@ -231,12 +232,24 @@ void UWordQuestQuestionSubsystem::BuildYear4QuestionBank()
         TEXT("Who is at the door"), TEXT("How exciting"), TEXT("The pupils are reading quietly"), TEXT("When does the bus arrive"),
         TEXT("Be careful"), TEXT("The cat is sleeping on the sofa"), TEXT("Which book do you want"), TEXT("What a wonderful day")
     };
-    const TCHAR* CorrectMarks[] = {TEXT("?"),TEXT("!"),TEXT("."),TEXT("?"),TEXT("!"),TEXT("."),TEXT("?"),TEXT("!"),TEXT("."),TEXT("?"),TEXT("!"),TEXT("."),TEXT("?"),TEXT("!"),TEXT("."),TEXT("?"),TEXT("!"),TEXT("."),TEXT("?"),TEXT("!")};
+    const TCHAR* CorrectMarks[] = {
+        TEXT("?"), TEXT("!"), TEXT("."), TEXT("?"), TEXT("!"), TEXT("."), TEXT("?"), TEXT("!"), TEXT("."), TEXT("?"),
+        TEXT("!"), TEXT("."), TEXT("?"), TEXT("!"), TEXT("."), TEXT("?"), TEXT("!"), TEXT("."), TEXT("?"), TEXT("!")
+    };
 
     for (int32 i = 0; i < 20; ++i)
     {
-        AddDynamic(FString::Printf(TEXT("PUNC_%02d"), i),
+        TArray<FString> Marks = {TEXT("."), TEXT("?"), TEXT("!"), TEXT(",")};
+        const FString CorrectMark = CorrectMarks[i];
+        int32 CorrectIndex = Marks.IndexOfByKey(CorrectMark);
+        if (CorrectIndex == INDEX_NONE)
+        {
+            Marks[0] = CorrectMark;
+            CorrectIndex = 0;
+        }
+
+        AddGeneratedQuestion(FString::Printf(TEXT("PUNC_%02d"), i),
             FString::Printf(TEXT("Choose the correct punctuation: %s___"), PunctuationPrompts[i]),
-            {CorrectMarks[i], TEXT("."), TEXT("?"), TEXT("!")}, 0, TEXT("Punctuation"));
+            Marks, CorrectIndex, TEXT("Punctuation"));
     }
 }
