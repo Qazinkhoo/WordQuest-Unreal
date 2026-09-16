@@ -42,7 +42,6 @@ void AWordQuestHUD::BeginPlay()
             FTypefaceEntry RegularEntry(FName(TEXT("Regular")));
             RegularEntry.Font = FFontData(WordQuestFontFace, 0);
             RuntimeFont->CompositeFont.DefaultTypeface.Fonts.Add(RegularEntry);
-            RuntimeFont->CompositeFont.MakeDirty();
             HDFont = RuntimeFont;
         }
     }
