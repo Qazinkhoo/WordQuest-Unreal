@@ -48,7 +48,6 @@ void AWordQuestStageOneBuilder::BeginPlay()
         if (Background)
         {
             Background->ConfigureBackground(1, Origin);
-            Background->SetActorLabel(TEXT("Stage1_Background"));
         }
     }
 
@@ -74,8 +73,7 @@ void AWordQuestStageOneBuilder::BeginPlay()
 
     if (UWorld* World = GetWorld())
     {
-        AWordQuestSwordPickup* Sword = World->SpawnActor<AWordQuestSwordPickup>(Origin + FVector(650.f, 0.f, 100.f), FRotator::ZeroRotator);
-        if (Sword) Sword->SetActorLabel(TEXT("Stage1_Sword"));
+        World->SpawnActor<AWordQuestSwordPickup>(Origin + FVector(650.f, 0.f, 100.f), FRotator::ZeroRotator);
 
         const float EnemyX[] = { 1500.f, 2600.f, 3700.f, 4800.f, 6000.f };
         for (int32 Wave = 1; Wave <= 5; ++Wave)
@@ -84,7 +82,6 @@ void AWordQuestStageOneBuilder::BeginPlay()
             if (Enemy)
             {
                 Enemy->ConfigureEnemy(Wave, Wave == 5);
-                Enemy->SetActorLabel(FString::Printf(TEXT("Stage1_Enemy_Wave_%d"), Wave));
             }
         }
     }
