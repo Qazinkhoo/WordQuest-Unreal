@@ -2,10 +2,18 @@
 #include "WordQuestGameMode.h"
 #include "InputCoreTypes.h"
 #include "Engine/World.h"
+#include "Engine/UserInterfaceSettings.h"
 
 void AWordQuestPlayerController::SetupInputComponent()
 {
     Super::SetupInputComponent();
+
+    // Disable Unreal's keyboard/gamepad focus brush at runtime so the intro
+    // screen shows only the baked artwork without the yellow selection box.
+    if (UUserInterfaceSettings* UISettings = GetMutableDefault<UUserInterfaceSettings>())
+    {
+        UISettings->RenderFocusRule = ERenderFocusRule::Never;
+    }
 
     if (!InputComponent) return;
 
