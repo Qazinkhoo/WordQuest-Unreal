@@ -21,6 +21,8 @@ public:
     UPROPERTY(BlueprintReadOnly, Category="Word Quest") bool bBattleActive = false;
     UPROPERTY(BlueprintReadOnly, Category="Word Quest") bool bStageClear = false;
     UPROPERTY(BlueprintReadOnly, Category="Word Quest") bool bShopOpen = false;
+    UPROPERTY(BlueprintReadOnly, Category="Word Quest") bool bMainMenuOpen = false;
+    UPROPERTY(BlueprintReadOnly, Category="Word Quest") bool bGameOver = false;
     UPROPERTY(BlueprintReadOnly, Category="Word Quest") FWordQuestQuestion CurrentQuestion;
     UPROPERTY(BlueprintReadOnly, Category="Word Quest") TObjectPtr<AWordQuestEnemy> CurrentEnemy;
 
@@ -34,6 +36,9 @@ public:
     UFUNCTION(BlueprintCallable) void LeaveStageShop();
     UFUNCTION(BlueprintCallable) void StartStageTwo();
     UFUNCTION(BlueprintCallable) void StartStageThree();
+    UFUNCTION(BlueprintCallable) void StartAdventureFromMenu();
+    UFUNCTION(BlueprintCallable) void RestartCurrentStage();
+    UFUNCTION(BlueprintCallable) void ReturnToMainMenu();
 
     UFUNCTION(BlueprintImplementableEvent) void OnQuestionChanged();
     UFUNCTION(BlueprintImplementableEvent) void OnBattleStateChanged();
@@ -43,6 +48,7 @@ public:
 private:
     bool LoadDifferentQuestion();
     void PlayTone(float StartFrequency, float EndFrequency, float DurationSeconds, float Volume = 0.35f);
+    FName GetBaseMapForStage(int32 Stage) const;
 
     FVector AdventureStartLocation = FVector::ZeroVector;
 
