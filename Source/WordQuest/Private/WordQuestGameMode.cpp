@@ -70,19 +70,39 @@ bool AWordQuestGameMode::SubmitAnswer(int32 AnswerIndex)
     UWordQuestGameInstance* GI = GetGameInstance<UWordQuestGameInstance>();
     if (!GI) return false;
 
+    AWordQuestCharacter* Player = Cast<AWordQuestCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
     const bool bCorrect = AnswerIndex == CurrentQuestion.CorrectAnswerIndex;
+
     if (bCorrect)
     {
+        if (Player)
+        {
+            Player->ShowFloatingText(TEXT("Correct!"), FColor::White, 195.f);
+        }
+
+        CurrentEnemy->PlayHitPulse();
+        const bool bWasBoss = CurrentEnemy->bBoss;
         const bool bDefeated = CurrentEnemy->ReceiveWordDamage(GI->PlayerState.Damage);
+
         if (bDefeated)
         {
-            if (CurrentEnemy->bBoss) GI->RewardBoss(); else GI->RewardNormalEnemy();
+            if (bWasBoss)
+            {
+                GI->RewardBoss();
+                if (Player) Player->ShowFloatingText(TEXT("+10 Coins"), FColor::Yellow, 150.f);
+            }
+            else
+            {
+                GI->RewardNormalEnemy();
+                if (Player) Player->ShowFloatingText(TEXT("+3 Coins"), FColor::Yellow, 150.f);
+            }
+
             CurrentEnemy->Destroy();
             CurrentEnemy = nullptr;
             bBattleActive = false;
             AdvanceWave();
 
-            if (AWordQuestCharacter* Player = Cast<AWordQuestCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0)))
+            if (Player)
             {
                 Player->SetBattleLocked(false);
             }
@@ -93,11 +113,26 @@ bool AWordQuestGameMode::SubmitAnswer(int32 AnswerIndex)
     }
     else
     {
-        GI->ApplyEnemyHit();
+        const bool bTookDamage = GI->ApplyEnemyHit();
+
+        if (Player)
+        {
+            if (bTookDamage)
+            {
+                Player->ShowFloatingText(TEXT("-1 HP"), FColor::Red, 150.f);
+                Player->ShowFloatingText(TEXT("Wrong!"), FColor::Red, 205.f);
+                Player->PlayDamageCameraBump();
+            }
+            else
+            {
+                Player->ShowFloatingText(TEXT("Blocked!"), FColor::Cyan, 175.f);
+            }
+        }
+
         if (GI->IsGameOver())
         {
             bBattleActive = false;
-            if (AWordQuestCharacter* Player = Cast<AWordQuestCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0)))
+            if (Player)
             {
                 Player->SetBattleLocked(true);
             }
@@ -106,6 +141,7 @@ bool AWordQuestGameMode::SubmitAnswer(int32 AnswerIndex)
             return false;
         }
     }
+
     LoadDifferentQuestion();
     return bCorrect;
 }
