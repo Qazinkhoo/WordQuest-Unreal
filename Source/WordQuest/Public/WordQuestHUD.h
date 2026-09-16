@@ -6,6 +6,7 @@
 
 class USoundWaveProcedural;
 class UFont;
+class UTexture2D;
 
 struct FWordQuestHUDMessage
 {
@@ -30,6 +31,7 @@ public:
 private:
     TArray<FWordQuestHUDMessage> FloatingMessages;
     void DrawFloatingMessages();
+    void DrawMenuVoxelHero(float CenterX, float TopY, float Scale);
     void PlayFeedbackTone(float StartFrequency, float EndFrequency, float DurationSeconds, float Volume = 0.4f);
     UFont* GetHUDTextFont() const;
 
@@ -37,6 +39,9 @@ private:
 
     UPROPERTY()
     TObjectPtr<UFont> HDFont;
+
+    UPROPERTY()
+    TObjectPtr<UTexture2D> MenuBackgroundTexture;
 
     UPROPERTY()
     TArray<TObjectPtr<USoundWaveProcedural>> ActiveFeedbackSounds;
