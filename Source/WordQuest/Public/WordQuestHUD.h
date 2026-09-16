@@ -24,6 +24,7 @@ class WORDQUEST_API AWordQuestHUD : public AHUD
 
 public:
     AWordQuestHUD();
+    virtual void BeginPlay() override;
     virtual void DrawHUD() override;
 
     void AddFloatingMessage(const FString& InText, const FColor& InColor, const FVector& InWorldLocation, float InDuration = 1.35f);
