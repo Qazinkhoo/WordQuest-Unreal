@@ -94,14 +94,14 @@ void UWordQuestStageBackgroundWidget::RefreshBackground()
         TileImage->SetBrush(Brush);
         TileImage->SetColorAndOpacity(FLinearColor::White);
 
-        UCanvasPanelSlot* Slot = TileCanvas->AddChildToCanvas(TileImage);
-        if (Slot)
+        UCanvasPanelSlot* CanvasSlot = TileCanvas->AddChildToCanvas(TileImage);
+        if (CanvasSlot)
         {
-            Slot->SetAnchors(FAnchors(0.f, 0.f, 0.f, 0.f));
-            Slot->SetAlignment(FVector2D(0.f, 0.f));
-            Slot->SetPosition(FVector2D(Index * TileWidth, 0.f));
-            Slot->SetSize(FVector2D(TileWidth, TileHeight));
-            Slot->SetAutoSize(false);
+            CanvasSlot->SetAnchors(FAnchors(0.f, 0.f, 0.f, 0.f));
+            CanvasSlot->SetAlignment(FVector2D(0.f, 0.f));
+            CanvasSlot->SetPosition(FVector2D(Index * TileWidth, 0.f));
+            CanvasSlot->SetSize(FVector2D(TileWidth, TileHeight));
+            CanvasSlot->SetAutoSize(false);
         }
 
         BackgroundTiles.Add(TileImage);
